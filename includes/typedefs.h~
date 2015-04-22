@@ -1,0 +1,33 @@
+#ifndef __Types_h__
+#define __Types_h__
+
+struct Asym_t{
+    std::vector<Double_t> run_number;
+    std::vector<Double_t> A_ave;
+    std::vector<Double_t> A_error;
+};
+
+// struct AnaChoice_t{
+//   std::vector<Double_t> Asuper1 (9,0);
+//   std::vector<Double_t> Asuper1er (9,0);
+//   std::vector<Double_t> Asuper2 (9,0);
+//   std::vector<Double_t> Asuper2er (9,0);
+//   std::vector<Double_t> Bsuper1 (9,0);
+//   std::vector<Double_t> Bsuper1er (9,0);
+//   std::vector<Double_t> Bsuper2 (9,0);
+//   std::vector<Double_t> Bsuper2er (9,0);
+//   std::vector<Double_t> A_multi_Aer (9,0);
+//   std::vector<Double_t> A_multi_Ber (9,0);
+//   std::vector<Double_t> A_multier (9,0);
+//   std::vector<Double_t> A_multi_A (9,0);
+//   std::vector<Double_t> A_multi_B (9,0);
+//   std::vector<Double_t> A_multi (9,0);
+//   std::vector<Double_t> A_sum_Aer (9,0);
+//   std::vector<Double_t> A_sum_Ber (9,0);
+//   std::vector<Double_t> A_sumer (9,0);
+//   std::vector<Double_t> A_sum_A (9,0);
+//   std::vector<Double_t> A_sum_B (9,0);
+//   std::vector<Double_t> A_sum (9,0);
+// };
+
+#endif
