@@ -23,6 +23,8 @@ void CollectAllRot(Double_t x[][150],Int_t xbin,Int_t ybin,TH2F *h,TH2F *h2,Int_
   
   for(Int_t i = 1 ; i < xbin + 1 ; i++){
     for(Int_t j = 1 ; j < ybin + 1 ; j++){
+	//std::cout << "Dummy test CollectAllRot " << h->GetEntries() << std::endl;
+
       x[i-1][j-1] += h->GetBinContent(i,j);
     }
   }
@@ -209,9 +211,15 @@ Double_t GetSuperRatioAsymmetry(TH1F *R1M, TH1F *R1P,TH1F *R2M, TH1F *R2P,Int_t 
   // Get the Super Ratio Asymmetry straight forward..
 
   using namespace TMath;
-
-  Double_t R = R1M->Integral(n1,n2)*R2P->Integral(n1,n2) /
-    (R1P->Integral(n1,n2)*R2M->Integral(n1,n2));
+/*
+	std::cout << "Test filling of variables, n1,n2 = " << n1 << " " << n2 << std::endl;
+	std::cout << "R1P integral = " << R1P->Integral(n1,n2) << std::endl;
+	std::cout << "R1M integral = " << R1M->Integral(n1,n2) << std::endl;
+	std::cout << "R2M integral = " << R2M->Integral(n1,n2) << std::endl;
+	std::cout << "R2P integral = " << R2P->Integral(n1,n2) << std::endl;
+*/
+  Double_t R = R1M->Integral(n1,n2)*R2P->Integral(n1,n2);
+  R /= (R1P->Integral(n1,n2)*R2M->Integral(n1,n2));
   Double_t S = Abs((1. - sqrt(R)) / ( 1. + sqrt(R)));
 
   return S;
@@ -564,8 +572,9 @@ void Get2DGaussianFit(TH2F *h2,Double_t &X,Double_t &Y)
 
    h2->Draw("colz");
    Gaus2d->Draw("l same");
-
-   c->Print(Form("output/%s.pdf",h2->GetTitle()));
+std::cout << "Let's presume this is the problem!" << std::endl;
+   //c->Print(Form("output/%s.pdf",h2->GetTitle())); // Has an error
+   c->Print(Form("output/%s.pdf","aMathFunc_2DHist"));
 
    delete Gaus2d;   
    delete c;
@@ -578,8 +587,8 @@ Double_t Return_Rotation_Angle(TArrow *aDis,Double_t X,Double_t Y)
   // Define vectors from the average intersection point to the beginning and end of     |
   // the displacement vector.                                                           |
   //====================================================================================+
-  TVector3 v1(aDis->GetX1()-X,aDis->GetY1()-Y);
-  TVector3 v2(aDis->GetX2()-X,aDis->GetY2()-Y);
+  TVector3 v1(aDis->GetX1()-X,aDis->GetY1()-Y,0);
+  TVector3 v2(aDis->GetX2()-X,aDis->GetY2()-Y,0);
   // Use the vector library operations to get the angle between v1 and v2.
   Double_t angle = v1.Angle(v2);
 

@@ -104,7 +104,7 @@ void Run::DeleteHistos()
   delete hWNoMWPC;
   delete hEMWPC;
   delete hWMWPC;
-  delete hEType0_Multi;
+/*  delete hEType0_Multi;
   delete hEType1_Multi;
   delete hEType23_Multi;
   delete hWType0_Multi;
@@ -112,7 +112,7 @@ void Run::DeleteHistos()
   delete hWType23_Multi;
   delete hEtype_1;
   delete hEtype_23;
-  delete hWtype_1;
+*/  delete hWtype_1;
   delete hWtype_23;
   for(Int_t i = 0 ; i < 12 ;i++){
     delete hERad[i];
@@ -129,7 +129,7 @@ void Run::DeleteHistos()
   delete hRotwI23;
   delete hPosDiffShifted;
   delete hPosDiffUnShifted;
-  delete hEastType1XRot;
+/*  delete hEastType1XRot;
   delete hEastType1YRot;
   delete hEastType23XRot;
   delete hEastType23YRot;
@@ -137,7 +137,7 @@ void Run::DeleteHistos()
   delete hWestType1YRot;
   delete hWestType23XRot;
   delete hWestType23YRot;
-  delete hETimeVsE;
+*/  delete hETimeVsE;
   delete hETimeVsEP;
   delete hETimeVsES;
   delete hWTimeVsE;
@@ -179,7 +179,8 @@ Bool_t Run::OpenRun(Int_t n)
   const char* author   = getenv("UCNA_ANA_AUTHOR");
   cout << "Attempting to open run spec_"<< n << ".root" << endl;
   f1     = new TFile(Form("%s/hists/spec_%d.root",filepath,n),"READ");
-  fHisto = new TFile(Form("%s/hists/hists_%d.root",filepath,n),"UPDATE");
+  //fHisto = new TFile(Form("%s/hists/hists_%d.root",filepath,n),"UPDATE");
+  fHisto = new TFile(Form("/home/jwwexler/robbyWork/histOut/hists_%d.root",n),"UPDATE");
   
   AnalysisDirExist = kFALSE;
   if(!(f1->IsOpen())){
@@ -191,9 +192,11 @@ Bool_t Run::OpenRun(Int_t n)
   
   if(!(fHisto->cd(Form("%s_Analysis_%d_%d",author,(Int_t)RAD,rotated)))){
     fHisto->mkdir(Form("%s_Analysis_%d_%d",author,(Int_t)RAD,rotated));
+	cout << "Making Analysis Histogram" << endl;
   } else {
     fHisto->cd(Form("%s_Analysis_%d_%d",author,(Int_t)RAD,rotated));
     AnalysisDirExist = kTRUE;
+	cout << "Reopening Analysis Histogram" << endl;
   }
   
   SetBranches();
@@ -513,6 +516,10 @@ Int_t Run::Calculate_Backscatter(Int_t nex,Int_t nwx)
 {
   // Count UP the backscatter fraction numbers.
 
+  cout << "N_low, N_HIGH, (linebreak) heq entries " << endl;
+  cout << nlow << " " << nhigh << " " << endl;
+  cout << heq->GetEntries() << endl;
+
   bscat.e_all     = heq->Integral(nlow,nhigh);
   bscat.etype_1   = heqF->Integral(nlow,nhigh);
   bscat.etype_23  = heqG->Integral(nlow,nhigh);
@@ -617,8 +624,8 @@ Int_t Run::SetRunTime(TSQLServer *sql)
   if(res->GetRowCount() != 0){
     while((row = (TSQLRow*)res->Next())){
       // Set east and west live times
-      rtime_e = atof(row->GetField(2));
-      rtime_w = atof(row->GetField(2));
+      rtime_e = atof(row->GetField(0));
+      rtime_w = atof(row->GetField(1));
       cout << "Run : " << runnum << " West live time " << rtime_w << " East live time " << rtime_e << endl;
       // Check flipper status
       if(!strncmp(row->GetField(3),"On",5))flipper = 1;
@@ -660,7 +667,8 @@ Int_t Run::SetBranches()
   // Things are commented out due to changes in the replay engine
   // over the years....
   t1->SetBranchAddress("ScintE"      ,&Escint);
-  t1->SetBranchAddress("TimeReal"    ,&TimeReal);
+//  t1->SetBranchAddress("TimeReal"    ,&TimeReal); //Seems to have been removed
+					//  before I got here - JWW, 05132015
   t1->SetBranchAddress("ScintW"      ,&Wscint);
   t1->SetBranchAddress("DeltaT"      ,&DeltaT);
   t1->SetBranchAddress("PassedAnoE"  ,&PassedAnoE);
@@ -676,8 +684,9 @@ Int_t Run::SetBranches()
   t1->SetBranchAddress("TimeW"       ,&TimeW);
   t1->SetBranchAddress("TDCE"        ,&TDCE);
   t1->SetBranchAddress("TDCW"        ,&TDCW);
-  t1->SetBranchAddress("TofE"        ,&TofE);
-  t1->SetBranchAddress("TofW"        ,&TofW);
+//  t1->SetBranchAddress("TofE"        ,&TofE);    //TofE/W deprecated, replaced							// by Tof
+//  t1->SetBranchAddress("TofW"        ,&TofW);
+  t1->SetBranchAddress("Tof"        ,&Tof);
   t1->SetBranchAddress("xEmpm"       ,&EastX);
   t1->SetBranchAddress("yEmpm"       ,&EastY);
   t1->SetBranchAddress("xWmpm"       ,&WestX);
@@ -694,7 +703,8 @@ Int_t Run::SetBranches()
   t1->SetBranchAddress("PID"         ,&PID);
   t1->SetBranchAddress("Side"        ,&Side);
   t1->SetBranchAddress("Type"        ,&Type);
-  t1->SetBranchAddress("Etrue"       ,&Etrue);
+  //t1->SetBranchAddress("Etrue"       ,&Etrue);
+  t1->SetBranchAddress("Erecon"       ,&Etrue);  // Change in 2011-2012 set
   t1->SetBranchAddress("EMWPC_E"     ,&EastMWPCEnergy);
   t1->SetBranchAddress("EMWPC_W"     ,&WestMWPCEnergy);
 
@@ -926,6 +936,7 @@ Int_t Run::Handle_Backscatters(Int_t entry)
     //-------------------------------------------------------------
     hEastType1XRot->Fill(EastX.center,EastY.center,EastX.center-WestX.center);
     hEastType1YRot->Fill(EastX.center,EastY.center,EastY.center-WestY.center);
+
     hPosDiffShifted->Fill(xErot-WestX.center,yErot-WestY.center);
     hPosDiffUnShifted->Fill(EastX.center-WestX.center,EastY.center-WestY.center);
   } else if(Side == 1 && Type == 1 && posradw < RAD){
@@ -1263,6 +1274,8 @@ Int_t Run::GetHistograms()
   hWestType1YRot  = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWestType1YRot_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWestType23XRot = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWestType23XRot_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWestType23YRot = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWestType23YRot_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  hPosDiffShifted = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hPosDiffShifted_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  hPosDiffUnShifted = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hPosDiffUnShifted_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hEAnode     = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEAnode_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWAnode     = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWAnode_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWCathS     = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWCathS_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));

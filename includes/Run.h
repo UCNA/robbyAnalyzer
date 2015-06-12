@@ -97,7 +97,10 @@ class Run {
     Float_t         TDCE;
     Float_t         TofE;
     Float_t         TofW;
+    Float_t	    Tof;  // No TofE/W in 2011-2012 set, identical in 2013 set
+				//  JWW 05/21
     Float_t         Etrue;
+    Float_t         Erecon;  // True-Recon in 2011-2012 reanalysis (JWw 05/21)
     Float_t         WestMWPCEnergy;
     Float_t         EastMWPCEnergy;
     //------------------ 

@@ -200,7 +200,7 @@ Double_t Octet::Calc_A_multi()
     if(nA10[j] != 1)pow++;
     
     RR = Power((RA1*RA2)/(RA3*RA4),1./pow);
-    
+ 
     A_multi_A[j]   = ( 1. - RR )/( 1.+ RR );
     A_multi_Aer[j] = (2./pow)*RR/Power((1. + RR),2) * sqrt(ersumA);
   //--------------------------------------------------------------------------
@@ -273,7 +273,6 @@ Double_t Octet::Calc_A_multi()
     
     pow = 0.;
   }
-
   
   return 0.; 
 }
@@ -1546,6 +1545,8 @@ void Octet::Load_Background()
 //---------------------------------------------------------------------------
 void Octet::OutPutToDB()
 {
+/*
+
   //-----------------------------------------------------------------------
   // This set of functions send the event rates to the analysis 
   // database.  
@@ -1579,12 +1580,16 @@ void Octet::OutPutToDB()
   OutPutRatesToMPMDB(B10,AFP_ON,TYPE_0_EVENT ,hB10[3],hB10w[3],tB10,tB10w,adb);
   OutPutRatesToMPMDB(B10,AFP_ON,TYPE_I_EVENT ,hB10[5],hB10w[5],tB10,tB10w,adb);
   OutPutRatesToMPMDB(B10,AFP_ON,TYPE_II_EVENT,hB10[6],hB10w[6],tB10,tB10w,adb);
+
+*/
 };
 //----------------------------------------------------------------------------
 void Octet::OutPutRatesToMPMDB(vector<Int_t> nRuns,AFPState afp,
   EventType EType,TH1F *hEast,TH1F *hWest,Double_t tEast,Double_t tWest,
   AnalysisDB *adb)
 {
+
+/*
         if((int)nRuns.size() == 0 ) return;
         AnaCutSpec cuts;
 	
@@ -1625,4 +1630,6 @@ void Octet::OutPutRatesToMPMDB(vector<Int_t> nRuns,AFPState afp,
   	Asym.err       = TMath::Sqrt(hWest->Integral(nlow,nhigh)*tWest);
   	Asym.csid      = adb->uploadCutSpec(cuts);
   	adb->uploadAnaResult(Asym);
+
+*/
 };

@@ -81,6 +81,9 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
       // Stupid live time counter.  Live times are up to date in the mysql database so 
       // these are being used to up date the clocks.
 
+	TofE=Tof;
+	TofW=Tof;
+
       if(TofE < OldTE)East_Time_Cnt++;
       OldTE = TofE;
       
@@ -174,12 +177,12 @@ Int_t Beta_Run::SubBck(Bck_Run *br)
   
   //Subtract backgrounds from beta data, determine signal to noise ratios and 
   // do some other shit.
-
+/*
    cout << "Subtracting background for Run " <<  GetRunNumber() << " using run " << br->GetRunNumber() << endl;
    cout << "Background run time " << br->rtime_e << "  " << br->rtime_w << endl;
    cout << "West rates : " <<  hwq->Integral() <<"\t"<<  br->hwq->Integral() << endl;
    cout << "East rates : " <<  heq->Integral() <<"\t"<<  br->heq->Integral() << endl;
-
+*/
    btime_e = br->rtime_e;
    btime_w = br->rtime_w;
    TObjArrayIter *EastIter  = new TObjArrayIter(HEastAn);

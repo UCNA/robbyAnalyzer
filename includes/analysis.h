@@ -37,6 +37,7 @@ using namespace std;
 // Analysis functions
 Int_t analyze_background_runs(Int_t n,std::vector<Bck_Run *>bk,vector<Int_t> nrun,Int_t remake);
 Int_t analyze_beta_runs(Int_t n, std::vector<Beta_Run *>bta,vector<Int_t> nrun,Int_t remake);
+void AnalysisTaskRefill(Int_t n, std::vector<Beta_Run *>bta,vector<Int_t> nrun);
 Int_t Subtract_Backgrounds(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bk,Int_t nb,Int_t nbk);
 Int_t analyze_octets();
 void  PlotRunTimes();
@@ -82,6 +83,7 @@ void  CalcSimplSuper();
 void  Plot_Timing();
 void  Fill_Timing();
 void  Get_Base_Super(Int_t i, char oct1[4],char oct2[4]);
+void  Get_Base_Super_Back(Int_t i, char oct1[4],char oct2[4]);
 void  Collect_Octets();
 Double_t  DrawEnergyPanel(TH1F *hEdraw,TH1F *hERef,TH1F *hTot,TH1F *hRefTot,Int_t npad,TCanvas *c,Double_t scaling = 1.);
 void  Define_E_Spec();

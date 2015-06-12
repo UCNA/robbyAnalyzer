@@ -4,13 +4,14 @@
 #include "analysis.h"
 #include "variables.h"
 #include "AnalysisDB.hh"
+#include "Run.h"
 
 #include <algorithm>
 
 #define DEBUG      1
 //#define NRUNFIRST  14206
-#define NRUNFIRST  14077
-#define NRUNLAST   15966
+#define NRUNFIRST  17125
+#define NRUNLAST   19966
 
 #define MAXRUNS    NRUNLAST-NRUNFIRST
  
@@ -41,15 +42,19 @@ int main(int argc,char *argv[])
     analyze_octets();
     cout << "Finished Octets"<< endl;
   } 
-  return -1;
+//  return -1;
   //--------------------------------------------------------------------------------------
-  for(Int_t jrun = 0 ; jrun < nbeta ; jrun++){ 
-    btr[jrun]->Calculate_Backscatter(1,1);
-    btr[jrun]->GetSimpleAsym();
-  }
+//  for(Int_t jrun = 0 ; jrun < nbeta ; jrun++){ 
+//    btr[jrun]->Calculate_Backscatter(1,1);
+//    btr[jrun]->GetSimpleAsym();
+//  }
   //Close the connection to the database;
   sql->Close();
+// cout << "Analysis Refill ";
+//  if(nbeta > 0)  AnalysisTaskRefill(nbeta, btr, nbetas);
+// cout << "Succeeded!" << endl;
   CallAnalysisTasks();
+
   if(DEBUG == 1)cout << "Quiting" << endl;
 
   return 0;
@@ -63,10 +68,10 @@ void CallAnalysisTasks()
   CollectRates();
   cout << "Drawing Rates " << endl;
   DrawRates();
-  cout << "Plotting Positions" << endl;
+/*  cout << "Plotting Positions" << endl;
   Collect_Pos();
   cout << "Collecting Type Rotation " << endl;
-  //  CollectTypeRot();
+  CollectTypeRot();
   cout << "Collecting TDC Corruption Data " << endl;
   CollectTDCCor();
   cout << "Lets Find the Octets " << endl;
@@ -97,7 +102,35 @@ void CallAnalysisTasks()
   TrackStats();
   average_type1();
   PlotRunTimes();
+   */
 }
+
+/*void AnalysisTaskRefill(Int_t nrun, std::vector<Beta_Run*> btr, vector<Int_t> nrunl){
+	TString refillFile;
+	Double_t dummy9823;
+
+  for(Int_t i=0; i< (int)nrunl.size();i++){
+	refillFile="/home/jwwexler/robbyWork/histOut/hists_";
+	refillFile+=nrunl[i];
+	refillFile+=".root";
+
+	cout << "Opening " << refillFile;
+
+	TFile *fRefill = new TFile(refillFile,"READ");
+
+	cout << endl;
+	cout << Form("/%s_Analysis_%d_%d/hpe_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrunl[i]) << "= name of histo in " << refillFile << endl;
+//	dummy9823 = (TH2F*)fRefill->Get(Form("/%s_Analysis_%d_%d/hpe_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrunl[i]))->GetEntries();
+
+	btr[i]->hpe = (TH2F*)fRefill->Get(Form("/%s_Analysis_%d_%d/hpe_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrunl[i]));
+
+	btr[i]->hpw = (TH2F*)fRefill->Get(Form("/%s_Analysis_%d_%d/hpw_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrunl[i]));  // Normally 50, 3 are RAD and rotated?
+	cout << "i, hpe, hpw " << i << " " << btr[i]->hpe->GetEntries() << " " << btr[i]->hpw->GetEntries() << endl;
+	delete fRefill;
+  }
+
+}*/
+
 //---------------------------------------------------------------------------
 Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nrunl,Int_t remake)
 {
@@ -164,7 +197,7 @@ Int_t Subtract_Backgrounds(std::vector< Beta_Run *>bta,std::vector<Bck_Run*>bk, 
 Int_t analyze_octets()
 {
   fstream runlist;
-  runlist.open("input_files/octet_list_5.txt",fstream::in);
+  runlist.open("input_files/octet_list_D.txt",fstream::in);
   // Here you would build the Octets ......
   Int_t noctets;
   noct = 0;
@@ -243,9 +276,9 @@ Int_t ParseMPMOctetList(vector<Int_t> &RunListMPM)
   Int_t nocts = 0;
   vector<Int_t> current_oct (100);
   fstream foct,frlist;
-  foct.open("input_files/octet_list_5.txt",fstream::out);
+  foct.open("input_files/octet_list_D.txt",fstream::out);
   frlist.open("input_files/parsed_run_list.txt",fstream::out);
-  mpmlist.open("UCNA_Official_Replay/Aux/OctetList_2010.txt",fstream::in);
+  mpmlist.open("input_files/OctetList_Dummy.txt",fstream::in);
 
   if(mpmlist.is_open()){
     do{
@@ -599,11 +632,17 @@ void CollectTypeRot()
   // Clean the array,prepare to fill with Total events
   CleanArray(ecount,rbins,rbins);
   CleanArray(wcount,rbins,rbins);
+
+	cout << "Pre-CTR Loop" << endl;
+
   // Loop through all events and fill the total array
   for(Int_t i = 0 ; i < nbeta ; i++){
     if(i == nbeta - 1)last = 1;
+
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     CollectAllRot(ecount,rbins,rbins,btr[i]->hRote,hTotRote,last);
     CollectAllRot(wcount,rbins,rbins,btr[i]->hRotw,hTotRotw,last);
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   last = 0; //Reset last counter
   // Clean the array,prepare to fill with Type 1 events
@@ -611,17 +650,24 @@ void CollectTypeRot()
   CleanArray(wcount,rbins,rbins);
   for(Int_t i = 0 ; i < nbeta ; i++){
     if(i == nbeta - 1)last = 1;
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     CollectAllRot(ecount,rbins,rbins,btr[i]->hRoteI,hTotRoteI,last);
     CollectAllRot(wcount,rbins,rbins,btr[i]->hRotwI,hTotRotwI,last);
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   last = 0;
+
+	cout << "Halfway through loops" << endl;
+
   //-------------------------------------------------------------------
   CleanArray(ecount,rbins,rbins);
   CleanArray(wcount,rbins,rbins);
   for(Int_t i = 0 ; i <nbeta ; i++){
     if(i == nbeta - 1)last = 1;
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     CollectAllRot(ecount,rbins,rbins,btr[i]->hRote23,hTotRote23,last);
     CollectAllRot(wcount,rbins,rbins,btr[i]->hRotw23,hTotRotw23,last);
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   last = 0;
   //-------------------------------------------------------------------
@@ -629,10 +675,15 @@ void CollectTypeRot()
   CleanArray(wcount,rbins,rbins);
   for(Int_t i = 0 ; i <nbeta ; i++){
     if(i == nbeta - 1)last = 1;
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     CollectAllRot(ecount,rbins,rbins,btr[i]->hRoteI23,hTotRoteI23,last);
     CollectAllRot(wcount,rbins,rbins,btr[i]->hRotwI23,hTotRotwI23,last);
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   last = 0;
+
+  cout << "Post-Fill loops" << endl;
+
   //------------------------------------------------------------------
   // finished filling now draw
   
@@ -729,20 +780,52 @@ void CollectTypeRot()
   TH2F *hAveWest1XRot = new TH2F("hAveWest1XRot","East Type 1 X Rot",75,-75,75,75,-75,75);
   TH2F *hAveWest1YRot = new TH2F("hAveWest1YRot","East Type 1 X Rot",75,-75,75,75,-75,75);
   //--------------------------------------------------------------------------------------
-  for(Int_t ii = 1 ; ii < 76 ; ii++){
+
+	cout << "Pre-Ultra loop" << endl;
+
+/*  for(Int_t ii = 1 ; ii < 76 ; ii++){
+
+	cout << ii << "th outer loop" << endl;
+
       for(Int_t jj = 1 ; jj < 76 ; jj++){
           for(Int_t irun = 0 ; irun < nbeta ; irun++){
+    	      btr[irun]->Load_Histograms(bckr[btr[irun]->Bkg_index],0);
               hAveEast1XRot->Fill((ii*2.)-75.,(2.*jj)-75,btr[irun]->hEastType1XRot->GetBinContent(ii,jj));
               hAveEast1YRot->Fill((ii*2.)-75.,(2.*jj)-75,btr[irun]->hEastType1YRot->GetBinContent(ii,jj));
               hAveWest1XRot->Fill((ii*2.)-75.,(2.*jj)-75,btr[irun]->hWestType1XRot->GetBinContent(ii,jj));
               hAveWest1YRot->Fill((ii*2.)-75.,(2.*jj)-75,btr[irun]->hWestType1YRot->GetBinContent(ii,jj));
+    	      btr[irun]->Remove_Histograms(bckr[btr[irun]->Bkg_index]);
           }
           hAveEast1XRot->SetBinContent(ii,jj,hAveEast1XRot->GetBinContent(ii,jj)/nbeta);
           hAveEast1YRot->SetBinContent(ii,jj,hAveEast1YRot->GetBinContent(ii,jj)/nbeta);
           hAveWest1XRot->SetBinContent(ii,jj,hAveWest1XRot->GetBinContent(ii,jj)/nbeta);
           hAveWest1YRot->SetBinContent(ii,jj,hAveWest1YRot->GetBinContent(ii,jj)/nbeta);
       }
+  }*/
+
+  for(Int_t irun = 0 ; irun < nbeta ; irun++){
+    btr[irun]->Load_Histograms(bckr[btr[irun]->Bkg_index],0);
+    for(Int_t ii = 1 ; ii < 76 ; ii++){
+      for(Int_t jj = 1 ; jj < 76 ; jj++){
+
+        hAveEast1XRot->Fill((ii*2.)-75.,(2.*jj)-75,btr[irun]->hEastType1XRot->GetBinContent(ii,jj));
+        hAveEast1YRot->Fill((ii*2.)-75.,(2.*jj)-75,btr[irun]->hEastType1YRot->GetBinContent(ii,jj));
+        hAveWest1XRot->Fill((ii*2.)-75.,(2.*jj)-75,btr[irun]->hWestType1XRot->GetBinContent(ii,jj));
+        hAveWest1YRot->Fill((ii*2.)-75.,(2.*jj)-75,btr[irun]->hWestType1YRot->GetBinContent(ii,jj));
+	}
+      }
+    btr[irun]->Remove_Histograms(bckr[btr[irun]->Bkg_index]);
   }
+  cout << "Average Histos Filled" << endl;
+  for(Int_t ii = 1 ; ii < 76 ; ii++){
+      for(Int_t jj = 1 ; jj < 76 ; jj++){
+          hAveEast1XRot->SetBinContent(ii,jj,hAveEast1XRot->GetBinContent(ii,jj)/nbeta);
+          hAveEast1YRot->SetBinContent(ii,jj,hAveEast1YRot->GetBinContent(ii,jj)/nbeta);
+          hAveWest1XRot->SetBinContent(ii,jj,hAveWest1XRot->GetBinContent(ii,jj)/nbeta);
+          hAveWest1YRot->SetBinContent(ii,jj,hAveWest1YRot->GetBinContent(ii,jj)/nbeta);
+      }
+  }
+  cout << "Average calculated" << endl;
   crot->Clear();
 
   TArrow *lEastDis[5625],*lWestDis[5625];
@@ -761,11 +844,16 @@ void CollectTypeRot()
   TH2F *hPosShiftedTot   = new TH2F("hPosShiftedTot"  ,"Shifted Position Difference "   ,150,-25,25,150,-25,25);
   TH2F *hPosUnShiftedTot = new TH2F("hPosUnShiftedTot"," UnShifted Position Difference ",150,-25,25,150,-25,25);
 
+	cout << "Whatever the hell this is?" << endl;
+
   for(Int_t i = 0 ; i < nbeta ; i++){
-     for(Int_t j = 0 ; j < hPosShiftedTot->GetNbinsX()*hPosShiftedTot->GetNbinsY() ; j++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
+     for(Int_t j = 1 ; j < hPosShiftedTot->GetNbinsX()*hPosShiftedTot->GetNbinsY() ; j++){
+	
         hPosShiftedTot->SetBinContent(j  ,hPosShiftedTot->GetBinContent(j)   + btr[i]->hPosDiffShifted->GetBinContent(j));
         hPosUnShiftedTot->SetBinContent(j,hPosUnShiftedTot->GetBinContent(j) + btr[i]->hPosDiffUnShifted->GetBinContent(j));
      }
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   //-----------------------------------------------------------------------------------------------------------------------
   // Loop through all the normal lines and find the intersection points......
@@ -777,6 +865,9 @@ void CollectTypeRot()
         if(iline != jline)
 	  if(GetInterSection(lEastNorm[iline],lEastNorm[jline],Xinter,Yinter) == 1)hEastIntersection->Fill(Xinter,Yinter,1);
   //------------------------------------------------------------------------------------------------------------------------
+
+	cout << "Making plots" << endl;
+
   // Draw and print the canvas
   gPad->SetGrid(1);
   crot->Print("output_files/rotation_east_type1.pdf");
@@ -851,6 +942,7 @@ void CollectTDCCor()
   
   // Fill state array with the rate of TDC header footer failures
   for(Int_t i = 0 ; i < nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     x1.push_back(btr[i]->GetRunNumber());
     
     srate.push_back(btr[i]->hETDC_cor->Integral());
@@ -861,6 +953,7 @@ void CollectTDCCor()
     
     sut.push_back(srate[i] + brate[i] + erttt[i]);
     sute.push_back(sqrt( srater[i]*srater[i] + brater[i]*brater[i] + ertet[i]*ertet[i]));
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
  
   // Collect those failures into a Graph
@@ -893,11 +986,13 @@ void CollectTDCCor()
 		      ,rbins,0,rbins,rbins,0,rbins);
   // Add up the hEvWTDC histogram for all beta runs
   for(Int_t i = 0 ; i <nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++){
       for(Int_t jbin = 1 ; jbin < rbins+1 ; jbin++){
 	ecount2[ibin-1][jbin-1] += btr[i]->hEvWTDC_cor->GetBinContent(ibin,jbin);
       }
     }
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   // Put the results in the collection histogram and 0 the array
   for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++){
@@ -907,11 +1002,13 @@ void CollectTDCCor()
     }
   }
   // Do this again for the good events
-  for(Int_t i = 0 ; i <nbeta ; i++)
+  for(Int_t i = 0 ; i <nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++)
       for(Int_t jbin = 1 ; jbin < rbins+1 ; jbin++)
           ecount2[ibin-1][jbin-1] += btr[i]->hEvWTDC->GetBinContent(ibin,jbin);
-  
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
+  }
   for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++)
     for(Int_t jbin = 1 ; jbin < rbins+1 ; jbin++)
         hEvWtotG->SetBinContent(ibin,jbin,ecount2[ibin-1][jbin-1]);
@@ -1058,11 +1155,18 @@ void CalcSimplSuper()
   // Find Regular SuperRatios
   fsuprat1.open("output_files/super_ratio.txt",fstream::out);
 
-  for(Int_t k = 0 ; k < nbck ; k++){
-    Get_Base_Super(k,(char*)"A1",(char*)"A4");
-    Get_Base_Super(k,(char*)"A9",(char*)"A12");
-    Get_Base_Super(k,(char*)"B1",(char*)"B4");
-    Get_Base_Super(k,(char*)"B9",(char*)"B12");
+  for(Int_t k = 0 ; k < nbck ; k++){ // ORIGINAL
+    bckr[k]->Load_Histograms();
+//    Get_Base_Super(k,(char*)"A1",(char*)"A4");  // Original Get_Base_Super
+//    Get_Base_Super(k,(char*)"A9",(char*)"A12"); //  uses btr, wrote
+//    Get_Base_Super(k,(char*)"B1",(char*)"B4"); //   Get_Base_Super_Back
+//    Get_Base_Super(k,(char*)"B9",(char*)"B12"); //  to read bckr
+
+    Get_Base_Super_Back(k,(char*)"A1",(char*)"A4");  // Original Get_Base_Super
+    Get_Base_Super_Back(k,(char*)"A9",(char*)"A12"); //  uses btr, wrote
+    Get_Base_Super_Back(k,(char*)"B1",(char*)"B4"); //   Get_Base_Super_Back
+    Get_Base_Super_Back(k,(char*)"B9",(char*)"B12"); //  to read bckr
+
     BkgdWestOne[k] = bckr[k]->BetasWest + 1.0;
     BkgdEastOne[k] = bckr[k]->BetasEast + 1.0;
     FirstWBkgTimeReal[k] = bckr[k]->CountTimeWFirstBeta;
@@ -1091,9 +1195,11 @@ void CalcSimplSuper()
     for(Int_t m = 2; m < BkgdEastOne[k]; m++){
     EastClockBkgArray[k][m] = bckr[k]->EastClock[m];
     }
+    bckr[k]->Remove_Histograms();
   }
  
   for(Int_t i = 0 ; i < nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     Get_Base_Super(i,(char*)"A2",(char*)"A5");
     Get_Base_Super(i,(char*)"A7",(char*)"A10");
     Get_Base_Super(i,(char*)"B2",(char*)"B5");
@@ -1158,6 +1264,7 @@ void CalcSimplSuper()
     if(LiveTimeAllEast[i] > 4200) {
     cout << "Livetime for all in east in run number " << btr[i]->GetRunNumber() << " is " << LiveTimeAllEast[i] << " sec." << endl;
     }*/
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
 
   fsuprat1.close();
@@ -1334,12 +1441,15 @@ void Get_Base_Super(Int_t i, char oct1[4],char oct2[4])
 	 lookahead = jstar-1 - i;
       }
     }// else {
+
+    btr[i+lookahead]->Load_Histograms(bckr[btr[i+lookahead]->Bkg_index],0);
       fsuprat1 <<"Super ratios " <<  btr[i]->GetRunNumber() << "\t" << btr[i+lookahead]->GetRunNumber() << endl;
       // if the quartet is found calculate the Asymmetry from the
       // super ratio.
       // This needs to be adjusted to add in the cases where there are
       // multiple files for the same type of octet run.
       // Get Super Ratio
+
       SuperTiming[Nsuper-1] = GetSuperRatioEight(btr[i]->CountTimeWBeta,btr[i]->CountTimeWFirstBeta,btr[i]->CountTimeEBeta,btr[i]->CountTimeEFirstBeta,btr[i+lookahead]->CountTimeWBeta,btr[i+lookahead]->CountTimeWFirstBeta,btr[i+lookahead]->CountTimeEBeta,btr[i+lookahead]->CountTimeEFirstBeta);
       SuperTimingA[Nsuper-1] = GetSuperRatioEightAss(btr[i]->CountTimeWBeta,btr[i]->CountTimeWFirstBeta,btr[i]->CountTimeEBeta,btr[i]->CountTimeEFirstBeta,btr[i+lookahead]->CountTimeWBeta,btr[i+lookahead]->CountTimeWFirstBeta,btr[i+lookahead]->CountTimeEBeta,btr[i+lookahead]->CountTimeEFirstBeta);
       Super[Nsuper-1]  = GetSuperRatioAsymmetry(btr[i]->hwq,btr[i]->heq,
@@ -1402,6 +1512,7 @@ void Get_Base_Super(Int_t i, char oct1[4],char oct2[4])
 					        btr[i+lookahead]->hApose->GetBinContent(2,2),
 						btr[i]->rtime_e,btr[i+lookahead]->rtime_e);
       NOctet = Nsuper;
+    btr[i+lookahead]->Remove_Histograms(bckr[btr[i+lookahead]->Bkg_index]);
       
       // Increment counters.
       Xrun[Nsuper-1] = Nsuper;
@@ -1414,6 +1525,131 @@ void Get_Base_Super(Int_t i, char oct1[4],char oct2[4])
    }  
   return;
 }
+//--------------------------------------------------------------
+
+void Get_Base_Super_Back(Int_t i, char oct1[4],char oct2[4])
+{
+  
+  // Eliminates the potential double counting of Quartets.
+
+  Int_t jstar = 0;
+  
+  if(i>0)
+    
+     if(!strcmp(bckr[i-1]->octtype,bckr[i]->octtype) && bckr[i-1]->rtime_e > bckr[i]->rtime_e) return;
+  if(i < nbeta-1)
+    if(!strcmp(bckr[i+1]->octtype,bckr[i]->octtype) && bckr[i+1]->rtime_e > bckr[i]->rtime_e) return;
+  // Check for the existance of the quartet pair
+  if(!strcmp(bckr[i]->octtype,oct1)){
+    // prevent from looking a negative array indices
+    if(i < 4) lookahead = 0;
+    // Loop around to find the correct run
+    do{      
+      lookahead++;     
+    }while(strcmp(bckr[i+lookahead]->octtype,oct2) && lookahead < 6 && lookahead+1+i < nbeta);
+    // if 5 then its a bad data set
+    if(lookahead == 6){
+      cout << "Matching Run for Run " << bckr[i]->GetRunNumber() << " Not Found!! " << Nsuper << endl;
+      if(bckr[i]->GetRunNumber() == 11090){
+         do{
+	   jstar++;
+	 }while(bckr[jstar-1]->GetRunNumber() != 11093);
+	 lookahead = jstar - i -1;
+      }
+      if(bckr[i]->GetRunNumber() == 11084){
+	do{
+	   jstar++;
+	 }while(bckr[jstar-1]->GetRunNumber() != 11088);
+	 lookahead = jstar-1 - i;
+      }
+    }// else {
+
+	bckr[i+lookahead]->Load_Histograms();
+
+      fsuprat1 <<"Super ratios " <<  bckr[i]->GetRunNumber() << "\t" << bckr[i+lookahead]->GetRunNumber() << endl;
+
+      // if the quartet is found calculate the Asymmetry from the
+      // super ratio.
+      // This needs to be adjusted to add in the cases where there are
+      // multiple files for the same type of octet run.
+      // Get Super Ratio
+      SuperTiming[Nsuper-1] = GetSuperRatioEight(bckr[i]->CountTimeWBeta,bckr[i]->CountTimeWFirstBeta,bckr[i]->CountTimeEBeta,bckr[i]->CountTimeEFirstBeta,bckr[i+lookahead]->CountTimeWBeta,bckr[i+lookahead]->CountTimeWFirstBeta,bckr[i+lookahead]->CountTimeEBeta,bckr[i+lookahead]->CountTimeEFirstBeta);
+      SuperTimingA[Nsuper-1] = GetSuperRatioEightAss(bckr[i]->CountTimeWBeta,bckr[i]->CountTimeWFirstBeta,bckr[i]->CountTimeEBeta,bckr[i]->CountTimeEFirstBeta,bckr[i+lookahead]->CountTimeWBeta,bckr[i+lookahead]->CountTimeWFirstBeta,bckr[i+lookahead]->CountTimeEBeta,bckr[i+lookahead]->CountTimeEFirstBeta);
+      Super[Nsuper-1]  = GetSuperRatioAsymmetry(bckr[i]->hwq,bckr[i]->heq,
+				     bckr[i+lookahead]->hwq,bckr[i+lookahead]->heq,nlow,nhigh);
+      // Get Super Ratio error
+      SuperE[Nsuper-1] = GetSuperRatioError(bckr[i]->hwq,bckr[i]->heq,
+					  bckr[i+lookahead]->hwq,bckr[i+lookahead]->heq,
+                                          bckr[i]->rtime_e,bckr[i+lookahead]->rtime_e,nlow,nhigh);
+      // Get Analysis C Super Ratios
+      SuperC[Nsuper-1]  = GetSuperRatioAsymmetry(bckr[i]->hwqC,bckr[i]->heqC,
+				       bckr[i+lookahead]->hwqC,bckr[i+lookahead]->heqC,nlow,nhigh);
+      // Get Super Ratio error
+      SuperCE[Nsuper-1] = GetSuperRatioError(bckr[i]->hwqC,bckr[i]->heqC,
+					    bckr[i+lookahead]->hwqC,bckr[i+lookahead]->heqC,
+	                                    bckr[i]->rtime_e,bckr[i+lookahead]->rtime_e,nlow,nhigh);
+      // Get Position Dependent Super Ratios
+      
+      SuperPos1[Nsuper-1] = GetSuperRatioAsymmetry(bckr[i]->hAposw->GetBinContent(1,1),
+					  bckr[i]->hApose->GetBinContent(1,1),
+					  bckr[i+lookahead]->hAposw->GetBinContent(1,1),
+					  bckr[i+lookahead]->hApose->GetBinContent(1,1));
+      
+      SuperEPos1[Nsuper-1] = GetSuperRatioError(bckr[i]->hAposw->GetBinContent(1,1),
+					    bckr[i]->hApose->GetBinContent(1,1),
+					    bckr[i+lookahead]->hAposw->GetBinContent(1,1),
+					    bckr[i+lookahead]->hApose->GetBinContent(1,1),
+	                                    bckr[i]->rtime_e,btr[i+lookahead]->rtime_e);
+      //----------------------------------------------------------------------------------------
+      SuperPos2[Nsuper-1] = GetSuperRatioAsymmetry(bckr[i]->hAposw->GetBinContent(2,1),
+					  bckr[i]->hApose->GetBinContent(2,1),
+					  bckr[i+lookahead]->hAposw->GetBinContent(2,1),
+					  bckr[i+lookahead]->hApose->GetBinContent(2,1));
+      
+      SuperEPos2[Nsuper-1] = GetSuperRatioError(bckr[i]->hAposw->GetBinContent(2,1),
+	                                        bckr[i]->hApose->GetBinContent(2,1),
+					        bckr[i+lookahead]->hAposw->GetBinContent(2,1),
+					        bckr[i+lookahead]->hApose->GetBinContent(2,1),
+						bckr[i]->rtime_e,btr[i+lookahead]->rtime_e);
+      //----------------------------------------------------------------------------------------
+      
+      SuperPos3[Nsuper-1] = GetSuperRatioAsymmetry(bckr[i]->hAposw->GetBinContent(1,2),
+					  bckr[i]->hApose->GetBinContent(1,2),
+					  bckr[i+lookahead]->hAposw->GetBinContent(1,2),
+				          bckr[i+lookahead]->hApose->GetBinContent(1,2));
+      
+      SuperEPos3[Nsuper-1] = GetSuperRatioError(bckr[i]->hAposw->GetBinContent(1,2),
+	                                        bckr[i]->hApose->GetBinContent(1,2),
+					        bckr[i+lookahead]->hAposw->GetBinContent(1,2),
+					        bckr[i+lookahead]->hApose->GetBinContent(1,2),
+						bckr[i]->rtime_e,btr[i+lookahead]->rtime_e);
+      //--------------------------------------------------------------------------------------
+      SuperPos4[Nsuper-1] = GetSuperRatioAsymmetry(bckr[i]->hAposw->GetBinContent(2,2),
+					  bckr[i]->hApose->GetBinContent(2,2),
+					  bckr[i+lookahead]->hAposw->GetBinContent(2,2),
+				          bckr[i+lookahead]->hApose->GetBinContent(2,2));
+      
+      SuperEPos4[Nsuper-1] = GetSuperRatioError(bckr[i]->hAposw->GetBinContent(2,2),
+	                                        bckr[i]->hApose->GetBinContent(2,2),
+					        bckr[i+lookahead]->hAposw->GetBinContent(2,2),
+					        bckr[i+lookahead]->hApose->GetBinContent(2,2),
+						bckr[i]->rtime_e,btr[i+lookahead]->rtime_e);
+      NOctet = Nsuper;
+    
+	bckr[i+lookahead]->Remove_Histograms();
+  
+      // Increment counters.
+      Xrun[Nsuper-1] = Nsuper;
+      Nsuper++;
+    // reset lookahead variable to -4 so that we can look ahead and behind the current run
+    // just incase.
+    lookahead = -4;
+    jstar = 0 ;
+     
+   }  
+  return;
+}
+//--------------------------------------------------------------
 //------------------------------------------------------------------------------------
 void Plot_Timing()
 {
@@ -1568,10 +1804,21 @@ void Collect_Pos()
   CleanArray(ecount,rbins,rbins);
   CleanArray(wcount,rbins,rbins);
   
+// cout << "Analysis Refill ";
+//  if(nbeta > 0)  AnalysisTaskRefill(nbeta, btr, nbetas);
+// cout << "Succeeded!" << endl;
+
   for(Int_t i = 0 ; i < nbeta ; i++){
     if(i == nbeta - 1)last = 1;
+
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
+
     CollectAllRot(ecount,rbins,rbins,btr[i]->hpe,hTotEPos,last);
     CollectAllRot(wcount,rbins,rbins,btr[i]->hpw,hTotWPos,last);
+
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
+
+
   }
   last = 0;
   // Draw the Position of All Events---------------------------------------
@@ -1708,6 +1955,7 @@ void Plot_MonRate()
   
   for(int i = 0 ; i < nbeta ; i++){
     //--------------------------------------------------------------------------------------
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     xt[i]   = btr[i]->GetRunNumber();
     if(btr[i]->Mon_Rate > 0 ){
 	    y[i]    = (btr[i]->heq->Integral() + btr[i]->hwq->Integral())/btr[i]->Mon_Rate;
@@ -1727,6 +1975,7 @@ void Plot_MonRate()
     hWestEndPoint->Fill(btr[i]->W_Endpoint);
     emean[i] = btr[i]->heq->GetMean();
     wmean[i] = btr[i]->hwq->GetMean();
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   
   TGraphErrors *gBdM = new TGraphErrors(nbeta,xt,y,0,yer);
@@ -1790,6 +2039,8 @@ void Plot_MonRate()
 void Collect_Octets()
 {
    
+  gStyle->SetOptStat(kTRUE); 
+
   using namespace TMath;
   
   TF1 *flA = new TF1("flA","[0]",0,noct);
@@ -2191,7 +2442,10 @@ void Collect_Octets()
   hFirstFiveWBkg->GetYaxis()->SetTitle("NBkgRuns");
   hFirstFiveWBkg->GetYaxis()->CenterTitle();
   pfivef->Print("output_files/pfivef.pdf");
-  TPaveStats *tFirstFiveE = (TPaveStats*) hFirstFiveE->FindObject("stats");
+
+//  TPaveStats *tFirstFiveE = (TPaveStats*) hFirstFiveE->FindObject("stats");
+  TPaveStats *tFirstFiveE;
+  tFirstFiveE = (TPaveStats*) hFirstFiveE->FindObject("stats");
   tFirstFiveE->SetName("FirstFiveE Stats");
   double XEF1 = tFirstFiveE->GetX1NDC();
   double YEF1 = tFirstFiveE->GetY1NDC();
@@ -3242,10 +3496,13 @@ void Collect_Octets()
   delete gCnts;
   delete cdiff;
   */
+  gStyle->SetOptStat(kFALSE); 
 };
 
 void OutPutToMPMDB(Int_t noct)
 {
+
+/*
   AnaCutSpec cuts;
   cuts.emin   = octet[0]->hAsyA[2]->GetBinCenter(nlow) - octet[0]->hAsyA[2]->GetBinWidth(nlow)/2.;
   cuts.emax   = octet[0]->hAsyA[2]->GetBinCenter(nhigh)+ octet[0]->hAsyA[2]->GetBinWidth(nhigh)/2.;
@@ -3330,7 +3587,7 @@ void OutPutToMPMDB(Int_t noct)
 
   	}
   //}
-    
+  */  
 }
 //---------------------------------------------------------------------------------------------------------------
 void Fill_Asymmetry_Vector(Asym_t &A,Double_t oct,Double_t octer,Int_t &index)
@@ -3509,6 +3766,7 @@ void Average_A()
   if(btr[0]->GetRunNumber() < 12000){
     fasye.open(Form("output_files/asymmetry_e_%d.txt",btr[0]->GetGeo()),fstream::out);
   } else {
+
     fasye.open("output_files/asymmetry_e_a0_16.txt",fstream::out);
     fasye2.open("output_files/asymmetry_e_a17_50.txt",fstream::out);
   }
@@ -3521,9 +3779,9 @@ void Average_A()
   fasye.close();
   fasye2.close();
   //------------------------------------------------------------------
-  TGraphErrors *gAvsE    = new TGraphErrors((int)x.size(),&x[0],&y[0],0,&yer[0]);
-  TGraphErrors *gAvsEb   = new TGraphErrors((int)x.size(),&x[0],&yb[0],0,&yber[0]);
-  TGraphErrors *gAvsEtot = new TGraphErrors((int)x.size(),&x[0],&ytot[0],0,&ytoter[0]);
+  TGraphErrors *gAvsE    = new TGraphErrors((int)x.size(),&x[0],&y1[0],0,&y1er[0]);
+  TGraphErrors *gAvsEb   = new TGraphErrors((int)x.size(),&x[0],&y1b[0],0,&y1ber[0]);
+  TGraphErrors *gAvsEtot = new TGraphErrors((int)x.size(),&x[0],&y1tot[0],0,&y1toter[0]);
 
   ColorGraphic(gAvsE,2,20,2,1);
   ColorGraphic(gAvsEb,4,20,2,1);
@@ -3665,6 +3923,7 @@ void Collect_TvsE()
   }
   
   for(Int_t i = 0 ; i <nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     for(Int_t ibin = 1 ; ibin < rbins ; ibin++){
       for(Int_t jbin = 1 ; jbin < rbins+1 ; jbin++){
         if(btr[i]->hETimeVsE->GetBinContent(ibin,jbin) > 0)
@@ -3673,6 +3932,7 @@ void Collect_TvsE()
 	  wcount[ibin-1][jbin-1] += btr[i]->hWTimeVsE->GetBinContent(ibin,jbin)*btr[i]->rtime_w;
       }
     }
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   
   for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++){
@@ -3806,6 +4066,7 @@ void Collect_23Anode()
   CleanArray(wcount,rbins,rbins);
  
   for(Int_t i = 0 ; i <nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++){
       for(Int_t jbin = 1 ; jbin < rbins+1 ; jbin++){
         if(btr[i]->hE23Anode2d->GetBinContent(ibin,jbin) > 0)
@@ -3814,6 +4075,7 @@ void Collect_23Anode()
 	wcount[ibin-1][jbin-1] += btr[i]->hW23Anode2d->GetBinContent(ibin,jbin)*btr[i]->rtime_w;
       }
     }
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   
   for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++){
@@ -3834,10 +4096,12 @@ void Collect_23Anode()
   TH1F *hWAnode23Tot = new TH1F("hWAnode23Tot","East ",100,0,20);
   
   for(Int_t i = 0 ; i < nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
 	for(Int_t j = 0 ; j < hEAnode23Tot->GetNbinsX() ; j++){
 	hEAnode23Tot->SetBinContent(j,hEAnode23Tot->GetBinContent(j) + btr[i]->hEAnode23->GetBinContent(j)*btr[i]->rtime_e);
 	hWAnode23Tot->SetBinContent(j,hWAnode23Tot->GetBinContent(j) + btr[i]->hWAnode23->GetBinContent(j)*btr[i]->rtime_w);
   	}
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
 
   cAnode->cd(3);
@@ -3870,9 +4134,11 @@ void Collect_Stuff()
   
   
   for(int i = 0 ; i < nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
        xS2N[i] = btr[i]->GetRunNumber();
        yS2N[i] = btr[i]->E_Sig_Nos;
        yS2Nw[i] = btr[i]->W_Sig_Nos;
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   
   TGraph *gS2Ne = new TGraph(nbeta,xS2N,yS2N);
@@ -3888,7 +4154,7 @@ void Collect_Stuff()
   delete cStN;
   delete gS2Ne;
   delete gS2Nw;
-  */
+  */ 
 };
 //-------------------------------------------------------------------------------
 void Collect_Rad()
@@ -4115,6 +4381,13 @@ void Collect_Energy_Spectra()
   TLegend *legSpc1,*legSpc2,*legSpc3,*legSpc4,*legSpc5,*legSpc6,*legSpc7,*legSpc8;
   TLegend *legSpc9,*legSpc10,*legSpc11,*legSpc12;
 
+
+    btr[1]->Load_Histograms(bckr[btr[1]->Bkg_index],0);
+    btr[3]->Load_Histograms(bckr[btr[3]->Bkg_index],0);
+    btr[4]->Load_Histograms(bckr[btr[4]->Bkg_index],0);
+    btr[5]->Load_Histograms(bckr[btr[5]->Bkg_index],0);
+    btr[6]->Load_Histograms(bckr[btr[6]->Bkg_index],0);
+
   DrawEnerPanel(hWFlipperOff  ,btr[3]->hEERef , c1bk,1,legSpc1,west_time_off);
   DrawEnerPanel(hWFlipperOff_I,btr[3]->hEERef1, c1bk,2,legSpc2,west_time_off);
   DrawEnerPanel(hWFlipperOff_2,btr[3]->hEERef2, c1bk,3,legSpc3,west_time_off);
@@ -4131,6 +4404,12 @@ void Collect_Energy_Spectra()
   btr[1]->hEERef->Scale(hEFlipperOn->Integral(1,80)/btr[1]->hEERef->Integral(1,80));
   btr[1]->hEERef1->Scale(1./btr[1]->hEERef1->Integral(1,80));
   btr[1]->hEERef2->Scale(1./btr[1]->hEERef2->Integral(1,80));
+
+    btr[1]->Remove_Histograms(bckr[btr[1]->Bkg_index]);
+    btr[3]->Remove_Histograms(bckr[btr[3]->Bkg_index]);
+    btr[4]->Remove_Histograms(bckr[btr[4]->Bkg_index]);
+    btr[5]->Remove_Histograms(bckr[btr[5]->Bkg_index]);
+    btr[6]->Remove_Histograms(bckr[btr[6]->Bkg_index]);
 
   c1bk->Print("output_files/e_spec_compares.pdf");
 
@@ -4188,6 +4467,7 @@ void Collect_Energy_Spectra()
     chiW2off[i] = 0.;
   }
 
+    btr[1]->Load_Histograms(bckr[btr[1]->Bkg_index],0);
    for(Int_t i = 0 ; i < 80 ; i++){
    	if(hEFlipperOn->GetBinError(i+1) > 0)
     		chiE0on[i] = Power((hEFlipperOn->GetBinContent(i+1) -
@@ -4240,6 +4520,8 @@ void Collect_Energy_Spectra()
    
   }
   
+    btr[1]->Remove_Histograms(bckr[btr[1]->Bkg_index]);
+
   TGraphErrors *gEO0 = new TGraphErrors(80,x1,chiE0on,x1er,sig);
   ColorGraphic(gEO0,2,20,2,0.8,"East AFP On","Energy (keV)","#sigma");
   TGraphErrors *gEO1 = new TGraphErrors(80,x1,chiE1on,x1er,sig);
@@ -4413,6 +4695,8 @@ void Fill_Foreground(Double_t *t1,Double_t *t2, Double_t *t3, Double_t *t4,Doubl
   Double_t tloss = *tl;
   Double_t missc = *nmiss;
 
+  Double_t nBinsX0=0;
+
   Double_t EastOn[nbinsX],EastOn_I[nbinsX],EastOn_2[nbinsX];
   Double_t EastOff[nbinsX],EastOff_I[nbinsX],EastOff_2[nbinsX];
   Double_t WestOn[nbinsX],WestOn_I[nbinsX],WestOn_2[nbinsX];
@@ -4445,6 +4729,7 @@ void Fill_Foreground(Double_t *t1,Double_t *t2, Double_t *t3, Double_t *t4,Doubl
   betalist.open("output_files/list_of_beta_run.txt",fstream::out);
 
   for(Int_t i = 0 ; i < nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     betalist << i << "\t" << btr[i]->GetRunNumber();
     tloss += btr[i]->time_difference;
     missc += (btr[i]->heq->Integral(nlow,nhigh) + btr[i]->hwq->Integral(nlow,nhigh))*btr[i]->time_difference;
@@ -4480,11 +4765,15 @@ void Fill_Foreground(Double_t *t1,Double_t *t2, Double_t *t3, Double_t *t4,Doubl
 	      }
 	}
     }
+
+	if(i==0) nBinsX0=btr[0]->heq->GetNbinsX();
+
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
 
   betalist.close();
 
-  for(Int_t i = 1 ; i <= btr[0]->heq->GetNbinsX() ; i++){
+  for(Int_t i = 1 ; i <= nBinsX0 ; i++){
     
     hEFlipperOn->SetBinContent(i,   hEFlipperOn->GetBinContent(i)   / EastOn[i-1]);
     hEFlipperOn_I->SetBinContent(i, hEFlipperOn_I->GetBinContent(i) / EastOn_I[i-1]);
@@ -4540,6 +4829,10 @@ void Fill_Background(Double_t* t1,Double_t* t2, Double_t* t3, Double_t* t4)
   Double_t t3val = *t3;
   Double_t t4val = *t4;
 
+    btr[0]->Load_Histograms(bckr[btr[0]->Bkg_index],0);
+  Double_t nBinsX0=btr[0]->heq->GetNbinsX();
+    btr[0]->Remove_Histograms(bckr[btr[0]->Bkg_index]);
+
   Double_t EastOn[nbinsX],EastOn_I[nbinsX],EastOn_2[nbinsX];
   Double_t EastOff[nbinsX],EastOff_I[nbinsX],EastOff_2[nbinsX];
   Double_t WestOn[nbinsX],WestOn_I[nbinsX],WestOn_2[nbinsX];
@@ -4568,6 +4861,7 @@ void Fill_Background(Double_t* t1,Double_t* t2, Double_t* t3, Double_t* t4)
   // Loop over all beta runs and sum up the background subtracted spectra
 
   for(Int_t i = 0 ; i < nbck ; i++){
+    bckr[i]->Load_Histograms();
     if(bckr[i]->GetRunNumber() != last){
     for(Int_t bin = 1 ; bin <= hEFlipperOn_B->GetNbinsX(); bin++){
       if(bckr[i]->flipperOn == 1){
@@ -4598,9 +4892,10 @@ void Fill_Background(Double_t* t1,Double_t* t2, Double_t* t3, Double_t* t4)
        last = bckr[i]->GetRunNumber();
       }
     }
+    bckr[i]->Remove_Histograms();
   }
  
-   for(Int_t i = 1 ; i <= btr[0]->heq->GetNbinsX() ; i++){
+   for(Int_t i = 1 ; i <= nBinsX0 ; i++){
    // cout << i << "\t"<< EastOn[i-1] << "\t" << EastOff[i-1] << endl;
     hEFlipperOn_B->SetBinContent(i  , hEFlipperOn_B->GetBinContent(i)   / EastOn[i-1]);
     hEFlipperOn_B_I->SetBinContent(i, hEFlipperOn_B_I->GetBinContent(i) / EastOn_I[i-1]);
@@ -4723,6 +5018,7 @@ void GammaBack()
   }
 
   for(Int_t i = 0 ; i < nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
       if(btr[i]->flipperOn == 1){
 	  Average_All_Hists(btr[i]->hENoMWPC,aveEO,aveEOe);
           Average_All_Hists(btr[i]->hEMWPC,avesEO,avesEOe);
@@ -4771,6 +5067,7 @@ void GammaBack()
       RWOFFe.push_back(2.2*btr[i]->MWPC_RatioW_fit_e);
 
     }
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   
   if((int)REON.size() == 0) return;
@@ -4993,6 +5290,7 @@ void Collect_TDCDiff()
 				   ,1000,-200,200);
   
   for(Int_t i = 0 ; i < nbeta ;i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     for(Int_t j = 1 ; j <= hTDCDiffTot_Off->GetNbinsX() ; j++){
       if(btr[i]->flipperOn == 0){
 	hTDCDiffTot_Off->SetBinContent(j,hTDCDiffTot_Off->GetBinContent(j)+btr[i]->hTDCDiff->GetBinContent(j));
@@ -5000,6 +5298,7 @@ void Collect_TDCDiff()
 	hTDCDiffTot_On->SetBinContent(j,hTDCDiffTot_On->GetBinContent(j)+ btr[i]->hTDCDiff->GetBinContent(j));
       }
     }
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   
   TCanvas *cTD = new TCanvas("cTD","TDC Difference");
@@ -5024,10 +5323,12 @@ void Collect_Gammas()
   Double_t x[MAXRUNS],fge[MAXRUNS],fgw[MAXRUNS],fr[MAXRUNS];
   
   for(Int_t i = 0 ; i < nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     x[i]   = btr[i]->GetRunNumber();
     fge[i] = btr[i]->hGammaCounts->GetBinContent(1) / btr[i]->hGammaCountsg->GetBinContent(1);
     fgw[i] = btr[i]->hGammaCounts->GetBinContent(2) / btr[i]->hGammaCountsg->GetBinContent(2);
     if(fgw[i] !=0)fr[i]  = fge[i] / fgw[i];
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   
   TGraph *gGaRat  = new TGraph(nbeta,x,fge);
@@ -5393,6 +5694,7 @@ void TrackAnodeMPV()
   // This compiles the average anode MPV from a landau fit verses run.
  
   vector<Double_t> xNrun,EastAnodeMPV,WestAnodeMPV,EastMPVer,WestMPVer;
+    btr[0]->Load_Histograms(bckr[btr[0]->Bkg_index],0);
 
   TF1 *fLand = new TF1("fLand","landau",0.1,10);
 
@@ -5411,8 +5713,10 @@ void TrackAnodeMPV()
   TH1F *hWestAnodeTotO = new TH1F("hWestAnodeTotO","West Anode Spectrum;Energy (keV);Counts",
                                   btr[0]->hWAnode->GetNbinsX(),btr[0]->hWAnode->GetXaxis()->GetXmin(),
                                   btr[0]->hWAnode->GetXaxis()->GetXmax());
+    btr[0]->Remove_Histograms(bckr[btr[0]->Bkg_index]);
   
   for(Int_t ii = 0 ; ii < nbeta ; ii++){
+    btr[ii]->Load_Histograms(bckr[btr[ii]->Bkg_index],0);
      xNrun.push_back(btr[ii]->GetRunNumber());
   
      btr[ii]->hEAnode->Fit("fLand","REMQ");
@@ -5435,6 +5739,7 @@ void TrackAnodeMPV()
                 hWestAnodeTotO->SetBinContent(jj,hWestAnodeTotO->GetBinContent(jj) + btr[ii]->hWAnode->GetBinContent(jj));
              }
      }
+    btr[ii]->Remove_Histograms(bckr[btr[ii]->Bkg_index]);
   }
   TGraphErrors *gEastAnodeMPV = new TGraphErrors(nbeta,&xNrun[0],&EastAnodeMPV[0],0,&EastMPVer[0]);
   TGraphErrors *gWestAnodeMPV = new TGraphErrors(nbeta,&xNrun[0],&WestAnodeMPV[0],0,&WestMPVer[0]);
@@ -5477,6 +5782,7 @@ void TrackStats()
   p.open("output_files/stattrack.dat",fstream::out);
 
   for(Int_t i = 0 ; i < nbeta; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
 	if(btr[i]->heq->Integral() > 0){
 		nValidRuns++;
 		Cnts.push_back((btr[i]->heq->Integral()*btr[i]->rtime_e 
@@ -5489,6 +5795,7 @@ void TrackStats()
 		p << Date[nValidRuns-1] << "\t" << (btr[i]->heq->Integral()*btr[i]->rtime_e
                                  +   btr[i]->hwq->Integral()*btr[i]->rtime_w) << endl;
 	}
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   p.close();
 
@@ -5515,6 +5822,7 @@ void average_type1()
   TH1F *hW1Type_Sc = new TH1F("hW1Type_Sc",";Eenrgy;Cts",100,0,1);
 
   for(Int_t i = 0 ; i < nbeta ; i++){
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     for(Int_t j = 1 ; j <= 100 ; j++){
       double epk1 = btr[i]->hEType1_Primary->GetBinCenter(j);
       hE1Type_Pr->SetBinContent(j,hE1Type_Pr->GetBinContent(j) + btr[i]->hEType1_Primary->GetBinContent(j)*btr[i]->rtime_e);
@@ -5522,6 +5830,7 @@ void average_type1()
       hW1Type_Pr->SetBinContent(j,hW1Type_Pr->GetBinContent(j) + btr[i]->hWType1_Primary->GetBinContent(j)*btr[i]->rtime_w);
       hW1Type_Sc->SetBinContent(j,hW1Type_Sc->GetBinContent(j) + btr[i]->hWType1_Secondary->GetBinContent(j)*btr[i]->rtime_w);
     }
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
 
   TCanvas *cType1 = new TCanvas("cType1","Type 1 Primary vs. Secondary",600,600);
@@ -5577,11 +5886,13 @@ void  PlotRunTimes()
 	vector<Double_t> nRun,livetime,nRunb,livetimeb;
 	vector<Double_t> livetimeW,livetimeWb;
 	for(Int_t i = 0 ; i < nbeta ; i++){
+    		btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
 		nRun.push_back(btr[i]->GetRunNumber());
                 livetime.push_back(btr[i]->rtime_e);
 		livetimeW.push_back(btr[i]->rtime_w);
 		livetimeb.push_back(bckr[btr[i]->Bkg_index]->rtime_e);
 		livetimeWb.push_back(bckr[btr[i]->Bkg_index]->rtime_w);
+    		btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
 	}
 	
 	TGraph *gTimesE  = new TGraph((int)nRun.size(),&nRun[0],&livetime[0]);

@@ -27,9 +27,9 @@ ifeq ($(MYOS),Linux)
 	LD            = gcc
 	LDFLAGS       = -g
 	SOFLAGS       = -shared
-        INCLUDEPATH   = -Iincludes -I${OFFICIAL}/IOUtils -I${OFFICIAL}/RootUtils -I${OFFICIAL}/BaseTypes -I${OFFICIAL}/MathUtils -I${OFFICIAL}/Calibration -I${OFFICIAL}/Analysis -I${OFFICIAL}/Studies -I${OFFICIAL}/Physics
+        INCLUDEPATH   = -Iincludes -I${OFFICIAL}/IOUtils -I${OFFICIAL}/RootUtils -I${OFFICIAL}/BaseTypes -I${OFFICIAL}/MathUtils -I${OFFICIAL}/Calibration -I${OFFICIAL}/Analysis -I${OFFICIAL}/Studies -I${OFFICIAL}/Physics -I/usr/include/mysql
 	CXXFLAGS     += $(ROOTCFLAGS) $(INCLUDEPATH)
-	LIBS          = $(ROOTLIBS) -L${OFFICIAL} -lUCNA
+	LIBS          = $(ROOTLIBS) -L${OFFICIAL} #-lUCNA
 	GLIBS         = $(ROOTGLIBS)
 	LIBS	     += -lstdc++ -lz -lRMySQL
 endif
