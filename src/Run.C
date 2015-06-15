@@ -617,8 +617,8 @@ Int_t Run::SetRunTime(TSQLServer *sql)
   if(res->GetRowCount() != 0){
     while((row = (TSQLRow*)res->Next())){
       // Set east and west live times
-      rtime_e = atof(row->GetField(2));
-      rtime_w = atof(row->GetField(2));
+      rtime_e = atof(row->GetField(0));
+      rtime_w = atof(row->GetField(1));
       cout << "Run : " << runnum << " West live time " << rtime_w << " East live time " << rtime_e << endl;
       // Check flipper status
       if(!strncmp(row->GetField(3),"On",5))flipper = 1;
