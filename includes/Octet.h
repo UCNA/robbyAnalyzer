@@ -142,6 +142,7 @@ class Octet {
 			Double_t &A,Double_t &Aer);
     void Get_Rad_A();
     void Initialize_Histo(Int_t n);
+    void Remove_Octet();  // From long-shot dream of fixing this
     void Find_Runs(std::vector<Beta_Run*>bta,std::vector<Bck_Run*>bck,Int_t nMax);
 
     Int_t GetFirst() {return First;}

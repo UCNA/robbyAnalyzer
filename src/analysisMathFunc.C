@@ -572,9 +572,8 @@ void Get2DGaussianFit(TH2F *h2,Double_t &X,Double_t &Y)
 
    h2->Draw("colz");
    Gaus2d->Draw("l same");
-std::cout << "Let's presume this is the problem!" << std::endl;
    //c->Print(Form("output/%s.pdf",h2->GetTitle())); // Has an error
-   c->Print(Form("output/%s.pdf","aMathFunc_2DHist"));
+   c->Print(Form("output_files/%s.pdf","aMathFunc_2DHist"));
 
    delete Gaus2d;   
    delete c;

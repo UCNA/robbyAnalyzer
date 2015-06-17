@@ -20,6 +20,8 @@ void Octet::CalculateSuperTime(Float_t R1M, Float_t R1MI, Float_t R1P, Float_t R
 
   // Get the Super Ratio - 1 straight forward.. with Floats.
 
+//cout << "R1P/I R2M/I " << R1P << " " << R1PI << " " << R2M << " " << R2MI << endl;
+
   R = ((R1M - R1MI)*(R2P - R2PI) / ((R1P - R1PI)*(R2M - R2MI))) - 1.;
 
 };
@@ -103,6 +105,9 @@ Float_t Octet::Calc_Super_Time()
   using namespace TMath;
   //Loop through analysis choices
       //==========================================================
+
+//	cout << "Calc Super Time tA2ef tA2ei = " << tA2ef << " " << tA2ei << endl;
+
       CalculateSuperTime(tA2ef,tA2ei,tA5ef,tA5ei,tA2wf,tA2wi,tA5wf,tA5wi
                     ,Asupertime1);
       //==========================================================
@@ -650,7 +655,7 @@ void Octet::Find_Runs(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bck,Int_t
 	  Fill(hA1w[j],(TH1F*)BkWest.Next(),bta[i]->btime_w, &tA2bw,nlast);
        }
        tA2ef = bta[i]->CountTimeEBeta;
-       tA2ei = bta[i]->CountTimeEFirstBeta;
+       tA2ei = bta[i]->CountTimeEFirstBeta; 
        tA2wf = bta[i]->CountTimeWBeta;
        tA2wi = bta[i]->CountTimeWFirstBeta;
        tA2efa = bta[i]->CountTimeEAll;
@@ -879,6 +884,8 @@ void Octet::Find_Runs(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bck,Int_t
    }
   }
   
+// cout << "tA2ef = " << tA2ef << " tB5ef = " << tB5ef << endl;
+
   QuartetAFirst = ((int)A1.size() > 0)  ? A1[0]  : 0; 
   QuartetALast  = ((int)A12.size() >0)  ? A12[0] : 0;
   QuartetBFirst = ((int)B1.size() > 0)  ? B1[0]  : 0;
@@ -1031,6 +1038,35 @@ void Octet::Initialize_Histo(Int_t n)
   Load_Background();
   
   
+}
+
+void Octet::Remove_Octet(){  // Modeled after Remove_Histograms, (hopefully) cleans
+		      //  out the octet[noct] histos.
+  for(Int_t i = 0; i < 20 ; i++){
+    delete hA2[i];  delete hA5[i];
+    delete hA7[i];  delete hA10[i];
+    delete hB2[i];  delete hB5[i];
+    delete hB7[i];  delete hB10[i];
+
+    delete hA2w[i];  delete hA5w[i];
+    delete hA7w[i];  delete hA10w[i];
+    delete hB2w[i];  delete hB5w[i];
+    delete hB7w[i];  delete hB10w[i];
+
+    delete hA1[i];  delete hA4[i];
+    delete hA9[i];  delete hA12[i];
+    delete hB1[i];  delete hB4[i];
+    delete hB9[i];  delete hB12[i];
+
+    delete hA1w[i];  delete hA4w[i];
+    delete hA9w[i];  delete hA12w[i];
+    delete hB1w[i];  delete hB4w[i];
+    delete hB9w[i];  delete hB12w[i];
+
+//    delete hAsyA[i];  delete hAsyB[i];
+//    delete hAsyTot[i];  
+  }
+
 }
 
 void Octet::Fill_Rad(Double_t *x1,Double_t *x1e,Float_t *x2,Float_t *x2e,Float_t t1)

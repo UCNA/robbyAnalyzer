@@ -104,7 +104,7 @@ void Run::DeleteHistos()
   delete hWNoMWPC;
   delete hEMWPC;
   delete hWMWPC;
-/*  delete hEType0_Multi;
+  delete hEType0_Multi;
   delete hEType1_Multi;
   delete hEType23_Multi;
   delete hWType0_Multi;
@@ -112,7 +112,7 @@ void Run::DeleteHistos()
   delete hWType23_Multi;
   delete hEtype_1;
   delete hEtype_23;
-*/  delete hWtype_1;
+  delete hWtype_1;
   delete hWtype_23;
   for(Int_t i = 0 ; i < 12 ;i++){
     delete hERad[i];
@@ -129,7 +129,7 @@ void Run::DeleteHistos()
   delete hRotwI23;
   delete hPosDiffShifted;
   delete hPosDiffUnShifted;
-/*  delete hEastType1XRot;
+  delete hEastType1XRot;
   delete hEastType1YRot;
   delete hEastType23XRot;
   delete hEastType23YRot;
@@ -137,7 +137,7 @@ void Run::DeleteHistos()
   delete hWestType1YRot;
   delete hWestType23XRot;
   delete hWestType23YRot;
-*/  delete hETimeVsE;
+  delete hETimeVsE;
   delete hETimeVsEP;
   delete hETimeVsES;
   delete hWTimeVsE;
@@ -516,10 +516,10 @@ Int_t Run::Calculate_Backscatter(Int_t nex,Int_t nwx)
 {
   // Count UP the backscatter fraction numbers.
 
-  cout << "N_low, N_HIGH, (linebreak) heq entries " << endl;
+/*  cout << "N_low, N_HIGH, (linebreak) heq entries " << endl;
   cout << nlow << " " << nhigh << " " << endl;
   cout << heq->GetEntries() << endl;
-
+*/
   bscat.e_all     = heq->Integral(nlow,nhigh);
   bscat.etype_1   = heqF->Integral(nlow,nhigh);
   bscat.etype_23  = heqG->Integral(nlow,nhigh);
@@ -889,8 +889,8 @@ Int_t Run::Handle_Backscatters(Int_t entry)
   // off the cut time and added an arbitary scale of 150ns. This
   // doesn't resize, stretch or rebin the timing spectral, just
   // recenters the cut time to 150.
-  Double_t NTDCE = TDCW - e_tdc_cut + TDC0;
-  Double_t NTDCW = TDCE - w_tdc_cut + TDC0;
+  Double_t NTDCE = TDCE - e_tdc_cut + TDC0;
+  Double_t NTDCW = TDCW - w_tdc_cut + TDC0;
   // Fill timing differenc histogram
   hTDCDiff->Fill(NTDCE-NTDCW,1);
   // Both MWPC above threshold, backscatter event
@@ -1119,8 +1119,8 @@ Int_t Run::Find_TDC_Cut(Int_t n,TSQLServer *sql2)
 Int_t Run::Handle_TDCCor_Evt()
 {
   
-  Double_t NTDCE = (TDCE - e_tdc_cut)-TDC0;
-  Double_t NTDCW = (TDCW - w_tdc_cut)-TDC0;
+  Double_t NTDCE = (TDCE - e_tdc_cut)+TDC0;
+  Double_t NTDCW = (TDCW - w_tdc_cut)+TDC0;
   
   // Plot total event energy for any event type
   if(BkhfGood == 0){
