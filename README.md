@@ -6,7 +6,9 @@ Again, tested only for ROOT 5.34, known non-functional in ROOT 5.99
 06/17/2015
 
 1) Fixed the outstanding issues with storage allocation/errors. Now runs to completion on the full 2011/2012 data set.
+
 2) Updated plots to include titles on axes.
+
 3) Definition of TDC Diff, relative to East and West TDC signals, have been modified in the Run.C file.  Previously, the two definitions of NTDCE were (and similarly for west)
 
 NTDCE = (TDCE - e_tdc_cut) - TDC0    and    NTDCE = TDCW-e_tdc_cut +TDC0
