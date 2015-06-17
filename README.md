@@ -3,6 +3,18 @@ Copy of the Robert Pattie UCNA analyzer
 
 Again, tested only for ROOT 5.34, known non-functional in ROOT 5.99
 
+06/17/2015
+1) Fixed the outstanding issues with storage allocation/errors. Now runs to completion on the full 2011/2012 data set.
+2) Updated plots to include titles on axes.
+3) Definition of TDC Diff, relative to East and West TDC signals, have been modified in the Run.C file.  Previously, the two definitions of NTDCE were (and similarly for west)
+
+NTDCE = (TDCE - e_tdc_cut) - TDC0    and    NTDCE = TDCW-e_tdc_cut +TDC0
+
+where the comments indicate that the TDC0 offset it to address a binning/calculation issue by recentering the signal around 150ms without smearing.  As a results, I've changed the two NTDCE definitions to both be
+
+NTDCE = TDCE - e_tdc_cut + TDC0
+
+06/12/2015
 At this point, most functionality has been fixed - all of the functions in 'CallAnalysisTasks()' have been uncommented-out, and most things produce pdfs.
 
 Fixes from the base version:
