@@ -10,7 +10,7 @@ class Bck_Run : public Run {
     virtual ~Bck_Run();
     
     //Functions
-    Int_t Fill(Int_t n,Int_t remake,Double_t *sep);
+    Int_t Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrunl);
     Int_t Draw_2d(Int_t nr,Int_t n);
     Int_t Draw_Hists(Int_t n);
     Int_t stuff;

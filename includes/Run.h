@@ -108,6 +108,9 @@ class Run {
     Float_t         xErot;
     Float_t         yErot;
 
+    Double_t MonRateIn;     //  Monitor rate previously defined in DB, 
+    Double_t MonEventEnd;   //   these kludges exist to make a decent guess.
+    Double_t MonRateCounter;
 
   Scint_t Escint;
   Scint_t Wscint;
@@ -237,6 +240,7 @@ class Run {
     TH1F *hEMWPC,*hWMWPC;         // MWPC cut used for looking at gamma backgrounds.
     TH1F *hEType0_Multi,*hWType0_Multi,*hEType1_Multi,*hWType1_Multi,*hEType23_Multi,*hWType23_Multi;
     TH1F *hERad[12],*hWRad[12];
+    TH1F *hCountTimeRecord;
     //--------------------------------------------------------------------------------------------------------
     // Backscatter Histograms
     TH1F *hEtype_1,*hEtype_23,*hWtype_1,*hWtype_23; // Energy spectra for backscatters of various types
@@ -256,13 +260,15 @@ class Run {
     TH2F *hETimeVsES,*hWTimeVsES;
     TH2F *hETimeVsEP,*hWTimeVsEP;
 
-    TH1F *htdcE,*htdcW;           // 1-D TDC histos
+//    TH1F *htdcE,*htdcW;           // 1-D TDC histos
     TH1F *hEAnode23,*hWAnode23;
     TH2F *hEType1_2d,*hWType1_2d; // 2-d backscattering 
     TH1F *hEType1_Primary,*hEType1_Secondary;
     TH1F *hWType1_Primary,*hWType1_Secondary;
     TH2F *hE23Anode2d,*hW23Anode2d;
     TH1F *hGammaCounts,*hGammaCountsg;
+    TH1F *hmr1;  TH1F *hmrIn;
+    TH1F *hClockW;  TH1F *hClockE;
     //---------------------------------------------------------------------------------------------------------
     // TDC Corruption Histograms
     TH1F *hETDC_cor,*hWTDC_cor;
@@ -302,7 +308,7 @@ class Run {
     void  Load_Background(Int_t nRunNumber,Int_t nRunType,Int_t nGeo);
     Int_t SetBranches();
     Int_t SaveHistograms(Bool_t SAVE);
-    Int_t GetHistograms();
+    Int_t GetHistograms(Int_t);
     Int_t Count_Time_All();
     Int_t Count_Time_First();
     //Int_t Count_Time_Beta();

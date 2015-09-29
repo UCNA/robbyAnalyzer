@@ -29,13 +29,14 @@ Beta_Run::~Beta_Run()
 
 void Beta_Run::Load_Histograms(Bck_Run *br,Bool_t SUBBCK)
 {
-     this->GetHistograms();
+     this->GetHistograms(0);
      this->ScaleList(this->HEastAn,this->rtime_e);
      this->ScaleList(this->HWestAn,this->rtime_w);
-     br->GetHistograms();
+     br->GetHistograms(0);
      br->ScaleList(br->HEastAn,br->rtime_e);
      br->ScaleList(br->HWestAn,br->rtime_w);
      if(SUBBCK)this->SubBck(br);
+
 }
 
 void Beta_Run::Remove_Histograms(Bck_Run *br)
@@ -53,7 +54,7 @@ Int_t Beta_Run::Draw_2d(Int_t nr,Int_t n)
   return 0;
 }
 
-Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
+Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
 {
   //-----------------------------------------------------------------------------------+
   // Loop through events in the tree to fill histograms for analysis.  Ideally         |
@@ -75,6 +76,14 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
 
   if(remake == 1 || !AnalysisDirExist){
     Initialize_hist(0,1,1);
+    TFile *f2 = new TFile(Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ");
+    hmrIn = (TH1F*)f2->Get("UCN_Mon_4_Rate");
+    for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){
+        hmr1->Fill(hmrIn->GetBinCenter(MRbin),hmrIn->GetBinContent(MRbin));
+    }
+    delete hmrIn; 
+    f2->Close();
+
     for(Int_t i = 0 ; i < t1->GetEntries() ; i++){ 
       t1->GetEntry(i);  // Get Enetry from the Tree;
       ScaleTDC();
@@ -103,7 +112,7 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
     hGammaCounts->SetBinContent(2,GammasWest);
     hGammaCountsg->SetBinContent(1,GammasEastg);
     hGammaCountsg->SetBinContent(2,GammasWestg);
-    
+
     if(GetGeo() == 1){
       // if geometry b correct the live times based on gamma counts
       rtime_e = rtime_e*(hGammaCountsg->GetBinContent(1))/(hGammaCounts->GetBinContent(1)); 
@@ -112,7 +121,7 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
        
     SaveHistograms(kTRUE);
   } else if( remake == 0){
-    GetHistograms();
+    GetHistograms(0);
     if(GetRunNumber() == 9983){
       cout << "East live time uncorrected " << rtime_e << endl;
       cout << "West live time uncorrected " << rtime_w << endl;
@@ -128,7 +137,7 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
     }
     SaveHistograms(kFALSE);
   }
-  
+
   return 0;
 }
 
@@ -515,6 +524,8 @@ Double_t Beta_Run::GetEnergyChi()
     fref.open("input_files/histogram_geoC.txt",fstream::in);
   } else if(GetRunNumber() > 13905){
     fref.open("input_files/histogram_e.txt",fstream::in);
+  } else{ 
+    fref.open("input_files/histogram_e.txt",fstream::in);
   }
   Double_t temp1,temp2,temp3,temp4;
   
@@ -524,6 +535,9 @@ Double_t Beta_Run::GetEnergyChi()
      hEERef->SetBinContent(ibin,temp2);
      hEERef1->SetBinContent(ibin,temp3);
      hEERef2->SetBinContent(ibin,temp4);
+
+	cout << ibin << "th Bin, contents " << temp2 << " " << temp3 << " " << temp4 << endl;
+
      ibin++;
   }while(ibin < 101);
   
@@ -557,6 +571,7 @@ Int_t Beta_Run::Make_Kurie()
   FillKurie(heq,hEKurie);  
   hEKurie->Fit(fline,"RMEQ","");
   E_Endpoint = TMath::Abs(fline->GetParameter(0) / fline->GetParameter(1));
+
   E_EndError = E_Endpoint*sqrt(
 			       TMath::Power(fline->GetParError(0)
 					    /fline->GetParameter(0),2)

@@ -125,6 +125,9 @@ class Octet {
     TH1F *hB1w[nchoices],*hB4w[nchoices],*hB9w[nchoices],*hB12w[nchoices];
     // Asymmetry vs. E.
     TH1F *hAsyA[nchoices],*hAsyB[nchoices],*hAsyTot[nchoices];
+
+    Int_t FirstRunIndex;
+
     // ---- Analysis Functions ----------------------------------------------------------------
 
     Double_t Calc_Super();

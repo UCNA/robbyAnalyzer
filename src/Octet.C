@@ -631,6 +631,7 @@ void Octet::Find_Runs(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bck,Int_t
   for(Int_t i = 0 ; i < nMax ; i++){
    // Check to see if the run is within the bounds of the Octet in question
    if(bta[i]->GetRunNumber() >= First && bta[i]->GetRunNumber() <= Last){
+     if(bta[i]->GetRunNumber()==First) FirstRunIndex=First;
      // Start filling the run type histograms by comparing the octet type
      bta[i]->Load_Histograms(bck[bta[i]->Bkg_index],kTRUE);
      Int_t bkg_index = bta[i]->Bkg_index;
@@ -918,6 +919,7 @@ void Octet::Find_Runs(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bck,Int_t
   tB10w = ( tB10w !=0) ? tB10w : 1;
   
   GetIntegralCounts();
+
 }
 //-----------------------------------------------------------------------------------------
 void Octet::Fill(TH1F *h,TH1F *h2,Double_t t1,Double_t* t2,Int_t inc)
@@ -998,6 +1000,9 @@ void Octet::Initialize_Histo(Int_t n)
     hAsyB[i]   = new TH1F(Form("octet[%d]->hAsyB[%d]"  ,n,i),"B Octet Asymmetry"  ,nxbins,0,2000);
     hAsyTot[i] = new TH1F(Form("octet[%d]->hAsyTot[%d]",n,i),"Sum Octet Asymmetry",nxbins,0,2000);
  }
+
+  FirstRunIndex=0;
+ 
   // Zero the rad counters.
   
   for(Int_t i = 0; i < 12 ; i++){
@@ -1320,6 +1325,7 @@ Double_t Octet::ErrorSum(Double_t n1,Double_t n2,Double_t n3,Double_t n4,
   fdebug << "Sum              A = " << A_sum[ach] << " +/- " << A_sumer[ach] << endl;
   fdebug << "========================================================================================================" << endl;
   
+  fdebug.close();
   
 };
  //=====================================================
@@ -1497,7 +1503,7 @@ Double_t Octet::Average_Quartet_Rate(Double_t r1,Double_t t1,Double_t b1,Double_
   };
   
   ave = ave /sig;
-  
+ 
   return ave;
 }
 

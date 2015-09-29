@@ -28,7 +28,7 @@ Int_t Bck_Run::Draw_2d(Int_t nr,Int_t n)
 
 void Bck_Run::Load_Histograms()
 {
-     this->GetHistograms();
+     this->GetHistograms(0);
      this->ScaleList(this->HEastAn,this->rtime_e);
      this->ScaleList(this->HWestAn,this->rtime_w);
 }
@@ -39,7 +39,7 @@ void Bck_Run::Remove_Histograms()
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-Int_t Bck_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
+Int_t Bck_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
 {
 
   Float_t East_Time_Cnt=0.;
@@ -55,6 +55,13 @@ Int_t Bck_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
   //cout << "run num = " << GetRunNumber() << endl;
   if(remake == 1 || !AnalysisDirExist){
     Initialize_hist(0,1,1);
+    TFile *f2 = new TFile(Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ"); 
+    hmrIn = (TH1F*) f2->Get("UCN_Mon_4_Rate");
+    for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){
+	hmr1->Fill(hmrIn->GetBinCenter(MRbin),hmrIn->GetBinContent(MRbin));
+    }
+    delete hmrIn; 
+    f2->Close();
     //cout << "run num = " << GetRunNumber() << endl;
     for(Int_t i = 0 ; i < t1->GetEntries() ; i++){
 
@@ -79,22 +86,22 @@ Int_t Bck_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
     hGammaCounts->SetBinContent(2,GammasWest);
     hGammaCountsg->SetBinContent(1,GammasEastg);
     hGammaCountsg->SetBinContent(2,GammasWestg);
-    
+   
     if(GetGeo() == 1){
       rtime_e = rtime_e*(hGammaCountsg->GetBinContent(1))/(hGammaCounts->GetBinContent(1)); 
       rtime_w = rtime_w*(hGammaCountsg->GetBinContent(2))/(hGammaCounts->GetBinContent(2)); 
     }
     SaveHistograms(kTRUE);
   } else if(remake == 0){
-    GetHistograms();
+    GetHistograms(0);
     if(GetGeo() ==1){    
       rtime_e = rtime_e*(hGammaCountsg->GetBinContent(1))/(hGammaCounts->GetBinContent(1)); 
       rtime_w = rtime_w*(hGammaCountsg->GetBinContent(2))/(hGammaCounts->GetBinContent(2)); 
     }
     SaveHistograms(kFALSE);
+
   }
-  
- 
+
   return 0;
 
 }

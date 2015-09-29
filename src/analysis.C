@@ -43,19 +43,22 @@ cout << "Analyze Beta runs" << endl;
   cout << "Finished Analysis............" << endl;
   // Now Analyze generated histograms ....
   if(nbeta > 0){    
-    Subtract_Backgrounds(btr,bckr,nbeta,nbck);
+    Subtract_Backgrounds(btr,bckr,nbeta,nbck);   // Background subtraction 
+						   //  handled in load cmd
     if(DEBUG == 1)cout << "Done with Backgrounds" << endl;
     analyze_octets();
     cout << "Finished Octets"<< endl;
   } 
 //  return -1;
   //--------------------------------------------------------------------------------------
+
   for(Int_t jrun = 0 ; jrun < nbeta ; jrun++){ 
     btr[jrun]->Load_Histograms(bckr[btr[jrun]->Bkg_index],1);
     btr[jrun]->Calculate_Backscatter(1,1);
     btr[jrun]->GetSimpleAsym();
     btr[jrun]->Remove_Histograms(bckr[btr[jrun]->Bkg_index]);
   }
+
   //Close the connection to the database;
   sql->Close();
 // cout << "Analysis Refill ";
@@ -76,10 +79,16 @@ void CallAnalysisTasks()
   CollectRates();
   cout << "Drawing Rates " << endl;
   DrawRates();
+  cout << "Finished Octets" << endl;
+  Average_A();
+//  cout << "Getting Octets " << endl;  
+//  Collect_Octets();
+  cout << "Plot Chi2 Dist." << endl;
+  Plot_ChiDis();
   cout << "Plotting Positions" << endl;
-  Collect_Pos();
-  cout << "Collecting Type Rotation " << endl;
-  CollectTypeRot();
+  Collect_Pos();                 
+//  cout << "Collecting Type Rotation " << endl;
+//  CollectTypeRot();
   cout << "Collecting TDC Corruption Data " << endl;
   CollectTDCCor();
   cout << "Lets Find the Octets " << endl;
@@ -92,68 +101,75 @@ void CallAnalysisTasks()
   Plot_E_Chis();
   cout << "Plot Type 2/3 Difference" << endl;
   Plot_MonRate();
-  cout << "Getting Octets " << endl;  
-  Collect_Octets();
-  cout << "Finished Octets" << endl;
-  Average_A();
-  cout << "Collecting Stuff" << endl;
+  cout << "Collecting Energy vs Time" << endl;
   Collect_TvsE();
+  cout << "Collect Anode 23 backscatters" << endl;
   Collect_23Anode();
-  Collect_Stuff();
-  Collect_Rad();
+  cout << "Collecting Stuff" << endl;
+  Collect_Stuff();                     // Blank - nnonfunctional?
+  cout << "Collecting Rad" << endl;
+  Collect_Rad();                           
   Collect_Energy_Spectra();
   cout << "Gammas" << endl;
   GammaBack();
-  Collect_Gammas();
+//  Collect_Gammas();  // 2008-2009 diagnostic to calib. live time with gammas.
   Collect_TDCDiff();
-  cout << "Plot Chi2 Dist." << endl;
-  Plot_ChiDis();
+  cout << "Collecting Multi" << endl;
   Plot_Multi();
+  cout << "Anode MPV tracking" << endl;
   TrackAnodeMPV();
-  TrackStats();
-  average_type1();
-  PlotRunTimes();
+  TrackStats();       // Counts up events vs. date, not critical
+  average_type1();    // Non-functional?
+  PlotRunTimes();                       
 }
-
-/*void AnalysisTaskRefill(Int_t nrun, std::vector<Beta_Run*> btr, vector<Int_t> nrunl){
-	TString refillFile;
-	Double_t dummy9823;
-
-  for(Int_t i=0; i< (int)nrunl.size();i++){
-	refillFile="/home/jwwexler/robbyWork/histOut/hists_";
-	refillFile+=nrunl[i];
-	refillFile+=".root";
-
-	cout << "Opening " << refillFile;
-
-	TFile *fRefill = new TFile(refillFile,"READ");
-
-	cout << endl;
-	cout << Form("/%s_Analysis_%d_%d/hpe_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrunl[i]) << "= name of histo in " << refillFile << endl;
-//	dummy9823 = (TH2F*)fRefill->Get(Form("/%s_Analysis_%d_%d/hpe_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrunl[i]))->GetEntries();
-
-	btr[i]->hpe = (TH2F*)fRefill->Get(Form("/%s_Analysis_%d_%d/hpe_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrunl[i]));
-
-	btr[i]->hpw = (TH2F*)fRefill->Get(Form("/%s_Analysis_%d_%d/hpw_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrunl[i]));  // Normally 50, 3 are RAD and rotated?
-	cout << "i, hpe, hpw " << i << " " << btr[i]->hpe->GetEntries() << " " << btr[i]->hpw->GetEntries() << endl;
-	delete fRefill;
-  }
-
-}*/
 
 //---------------------------------------------------------------------------
 Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nrunl,Int_t remake)
 {
+  Double_t MonEventEnd;
+  Double_t MonRateCounter;
+ 
 // Analysis flow for background runs.
   for(Int_t i = 0 ; i < (int)nrunl.size() ; i++){
     if(bk[i]->OpenRun(nrunl[i])){
       bk[i]->Draw_2d(nrunl[i],i);
-      bk[i]->Fill(i,remake,sep23);
+      bk[i]->Fill(i,remake,sep23,nrunl[i]);
       bk[i]->Scale2Time(1,1);
       bk[i]->Calculate_Backscatter(1,1);
       bk[i]->Diagnosis_Run();
-    }
+
+/*      bk[i]->CountTimeEFirst=bk[i]->hCountTimeRecord->GetBinContent(1);
+      bk[i]->CountTimeEAll=bk[i]->hCountTimeRecord->GetBinContent(2);
+      bk[i]->CountTimeEFirstBeta=bk[i]->hCountTimeRecord->GetBinContent(3);
+      bk[i]->CountTimeEBeta=bk[i]->hCountTimeRecord->GetBinContent(4);
+      bk[i]->CountTimeWFirst=bk[i]->hCountTimeRecord->GetBinContent(5);
+      bk[i]->CountTimeWAll=bk[i]->hCountTimeRecord->GetBinContent(6);
+      bk[i]->CountTimeWFirstBeta=bk[i]->hCountTimeRecord->GetBinContent(7);
+      bk[i]->CountTimeWBeta=bk[i]->hCountTimeRecord->GetBinContent(8);
+*/
+/*
+      for(Int_t k=0; k<10000000000; k++){
+	if(bk[i]->hClockE->GetBinContent(k)==0 && bk[i]->hClockE->GetBinContent(k+1)==0) k=-1;
+	if(bk[i]->hClockE->GetBinContent(k)==0 && bk[i]->hClockE->GetBinContent(k+1)==0) break;
+	else{bk[i]->EastClock[k]=bk[i]->hClockE->GetBinContent(k); bk[i]->BetasEast++;}
+      }
+
+	cout << "Leaving loop, first clock " << bk[i]->EastClock[0] << endl;
+
+      for(Int_t k=0; k<1000000000; k++){
+	if(bk[i]->hClockW->GetBinContent(k)==0 && bk[i]->hClockW->GetBinContent(k+1)==0) break;
+	else{bk[i]->WestClock[k]=bk[i]->hClockW->GetBinContent(k); bk[i]->BetasWest++;}
+      }
+*/
+      MonEventEnd=1; MonRateCounter=0;
+      for(Int_t binsIn = 0; binsIn < bk[i]->hmr1->GetNbinsX(); binsIn++){
+	MonRateCounter+=bk[i]->hmr1->GetBinContent(binsIn);
+        if(MonEventEnd<bk[i]->hmr1->GetBinCenter(binsIn)&&bk[i]->hmr1->GetBinContent(binsIn)>0) MonEventEnd=bk[i]->hmr1->GetBinCenter(binsIn);
+      } 
+      bk[i]->Mon_Rate = MonRateCounter/MonEventEnd;
+
     bk[i]->DeleteHistos();
+    }
   }
 
  return 0;
@@ -161,15 +177,45 @@ Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nru
 //---------------------------------------------------------------------------
 Int_t analyze_beta_runs(Int_t n, std::vector<Beta_Run*>bta,vector<Int_t> nrunl,Int_t remake)
 {
+
+  Double_t MonEventEnd;
+  Double_t MonRateCounter;
  
   for(Int_t i = 0 ; i < (int)nrunl.size() ; i++){
     if(bta[i]->OpenRun(nrunl[i])){
       bta[i]->Draw_2d(nrunl[i],i);
-      bta[i]->Fill(i,remake,sep23);
+      bta[i]->Fill(i,remake,sep23,nrunl[i]);
       bta[i]->Scale2Time(1,1);
       bta[i]->Diagnosis_Run();
-    }
+
+/*      bta[i]->CountTimeEFirst=bta[i]->hCountTimeRecord->GetBinContent(1);
+      bta[i]->CountTimeEAll=bta[i]->hCountTimeRecord->GetBinContent(2);
+      bta[i]->CountTimeEFirstBeta=bta[i]->hCountTimeRecord->GetBinContent(3);
+      bta[i]->CountTimeEBeta=bta[i]->hCountTimeRecord->GetBinContent(4);
+      bta[i]->CountTimeWFirst=bta[i]->hCountTimeRecord->GetBinContent(5);
+      bta[i]->CountTimeWAll=bta[i]->hCountTimeRecord->GetBinContent(6);
+      bta[i]->CountTimeWFirstBeta=bta[i]->hCountTimeRecord->GetBinContent(7);
+      bta[i]->CountTimeWBeta=bta[i]->hCountTimeRecord->GetBinContent(8);
+*/
+/*      for(Int_t k=0; k<10000000000000000; k++){
+	if(bta[i]->hClockE->GetBinContent(k)==0 && bta[i]->hClockE->GetBinContent(k+1)==0) break;
+	else{bta[i]->EastClock[k]=bta[i]->hClockE->GetBinContent(k);  bta[i]->BetasEast++;}
+      }
+
+      for(Int_t k=0; k<10000000000000000; k++){
+	if(bta[i]->hClockW->GetBinContent(k)==0 && bta[i]->hClockW->GetBinContent(k+1)==0) break;
+	else{bta[i]->WestClock[k]=bta[i]->hClockW->GetBinContent(k);  bta[i]->BetasWest++;}
+      }
+*/
+      MonEventEnd=1; MonRateCounter=0;
+      for(Int_t binsIn = 0; binsIn < bta[i]->hmr1->GetNbinsX(); binsIn++){
+	MonRateCounter+=bta[i]->hmr1->GetBinContent(binsIn);
+        if(MonEventEnd<bta[i]->hmr1->GetBinCenter(binsIn)&&bta[i]->hmr1->GetBinContent(binsIn)>0) MonEventEnd=bta[i]->hmr1->GetBinCenter(binsIn);
+      }  
+      bta[i]->Mon_Rate = MonRateCounter/MonEventEnd;
+
     bta[i]->DeleteHistos();
+    }
   }
 
  return 0;
@@ -194,7 +240,7 @@ Int_t Subtract_Backgrounds(std::vector< Beta_Run *>bta,std::vector<Bck_Run*>bk, 
       if(i == j){
 	bta[n]->Bkg_index = k;
 //	bta[n]->SubBck(bk[k]);
-//	bta[n]->GetEnergyChi();
+	//bta[n]->GetEnergyChi();
 //	bta[n]->Make_Kurie();
       }
     }
@@ -225,6 +271,7 @@ Int_t analyze_octets()
         // defined runs.  If there are multiple DAQ runs for any such octet run they will
         // be summed such that the times are correctly counted and the rates are interms of
         // the total counts of all re
+	octet[noct]->FirstRunIndex=0;
         octet[noct]->Find_Runs(btr,bckr,nbeta);
 	// Need to adjust the octect calculation for the full octet analysis.
 	octet[noct]->Calc_Super();
@@ -482,6 +529,14 @@ void CollectRates()
                                      btr[jrun]->bscat.etype_23_bck,
                                      btr[jrun]->bscat.e_all_bck),1);
 
+/*      SetRateV(xrunw23,wrt23,wr23e,btr[jrun]->GetRunNumber(),
+             (btr[jrun]->bscat.etype_23 / (btr[jrun]->bscat.e_all))*100.,
+                       Rate_Error(btr[jrun]->bscat.etype_23,
+                                     btr[jrun]->bscat.e_all,
+                                     btr[jrun]->rtime_e,
+                                     btr[jrun]->bscat.etype_23_bck,
+                                     btr[jrun]->bscat.e_all_bck),1);
+*/
       SetRateV(xrunw23,wrt23,wr23e,btr[jrun]->GetRunNumber(),
              (btr[jrun]->bscat.wtype_23 / (btr[jrun]->bscat.w_all)) * 100.,
                     Rate_Error(btr[jrun]->bscat.wtype_23,
@@ -521,16 +576,15 @@ void CollectRates()
                                      btr[jrun]->rtime_e,
                                      btr[jrun]->bscat.etype_23_bck,
                                      btr[jrun]->bscat.e_all_bck),1);
-      
+     
       SetRateV(xrunw23f,wrt23f,wr23ef,btr[jrun]->GetRunNumber(),
              (btr[jrun]->bscat.wtype_23 / (btr[jrun]->bscat.w_all)) * 100.,
                     Rate_Error(btr[jrun]->bscat.wtype_23,
                                   btr[jrun]->bscat.w_all,
                                   btr[jrun]->rtime_w,
                                   btr[jrun]->bscat.wtype_23_bck,
-                                  btr[jrun]->bscat.w_all_bck),1);
+                                  btr[jrun]->bscat.w_all_bck),1);  
     }
-     
   }
   Double_t xre[(Int_t)xrune.size()];
   copy(xrune.begin(),xrune.end(),xre);
@@ -590,7 +644,7 @@ void DrawRates()
   ColorGraphic(grwf,1,4,2);
   ColorGraphic(gre1f,2,4,2,1,"Type 1 Event Fractions (Flipper off)","Run Number","Fraction (%)");
   ColorGraphic(grw1f,1,4,2);
-  ColorGraphic(gre23f,2,4,2,1,"Type 2/3 Event Fractions (Flipper On)","Run Number","Fraction (%)");
+  ColorGraphic(gre23f,2,4,2,1,"Type 2/3 Event Fractions (Flipper off)","Run Number","Fraction (%)");
   ColorGraphic(grw23f,1,4,2);
 
   gre->Draw("AP");
@@ -643,20 +697,30 @@ void CollectTypeRot()
   Float_t rad     = 75.;
   Int_t last      = 0.  ;
   Double_t ecount[rbins][rbins],wcount[rbins][rbins];
-  //Define some collection histograms------------------------------------
+// More arrays, to decrease # of loops
+  Double_t ecountI[rbins][rbins],wcountI[rbins][rbins];
+  Double_t ecount23[rbins][rbins],wcount23[rbins][rbins];
+  Double_t ecountI23[rbins][rbins],wcountI23[rbins][rbins];
+//Define some collection histograms------------------------------------
   DefineRotationCollectionHistos(rbins,rad);
   //--------------------------------------------
   // Clean the array,prepare to fill with Total events
   CleanArray(ecount,rbins,rbins);
   CleanArray(wcount,rbins,rbins);
+  CleanArray(ecountI,rbins,rbins);
+  CleanArray(wcountI,rbins,rbins);
+  CleanArray(ecount23,rbins,rbins);
+  CleanArray(wcount23,rbins,rbins);
+  CleanArray(ecountI23,rbins,rbins);
+  CleanArray(wcountI23,rbins,rbins);
 
 	cout << "Pre-CTR Loop" << endl;
-
+/*
   // Loop through all events and fill the total array
   for(Int_t i = 0 ; i < nbeta ; i++){
     if(i == nbeta - 1)last = 1;
 
-    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],1);
     CollectAllRot(ecount,rbins,rbins,btr[i]->hRote,hTotRote,last);
     CollectAllRot(wcount,rbins,rbins,btr[i]->hRotw,hTotRotw,last);
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
@@ -667,21 +731,19 @@ void CollectTypeRot()
   CleanArray(wcount,rbins,rbins);
   for(Int_t i = 0 ; i < nbeta ; i++){
     if(i == nbeta - 1)last = 1;
-    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],1);
     CollectAllRot(ecount,rbins,rbins,btr[i]->hRoteI,hTotRoteI,last);
     CollectAllRot(wcount,rbins,rbins,btr[i]->hRotwI,hTotRotwI,last);
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   last = 0;
 
-	cout << "Halfway through loops" << endl;
-
   //-------------------------------------------------------------------
   CleanArray(ecount,rbins,rbins);
   CleanArray(wcount,rbins,rbins);
   for(Int_t i = 0 ; i <nbeta ; i++){
     if(i == nbeta - 1)last = 1;
-    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],1);
     CollectAllRot(ecount,rbins,rbins,btr[i]->hRote23,hTotRote23,last);
     CollectAllRot(wcount,rbins,rbins,btr[i]->hRotw23,hTotRotw23,last);
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
@@ -692,14 +754,31 @@ void CollectTypeRot()
   CleanArray(wcount,rbins,rbins);
   for(Int_t i = 0 ; i <nbeta ; i++){
     if(i == nbeta - 1)last = 1;
-    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],1);
     CollectAllRot(ecount,rbins,rbins,btr[i]->hRoteI23,hTotRoteI23,last);
     CollectAllRot(wcount,rbins,rbins,btr[i]->hRotwI23,hTotRotwI23,last);
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
   last = 0;
+*/
+  for(Int_t i = 0 ; i <nbeta ; i++){
+    if(i == nbeta - 1)last = 1;
+    cout << i << "th run of " << nbeta << endl;
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],1);
+    CollectAllRot(ecount,rbins,rbins,btr[i]->hRote,hTotRote,last);
+    CollectAllRot(wcount,rbins,rbins,btr[i]->hRotw,hTotRotw,last);
+    CollectAllRot(ecountI,rbins,rbins,btr[i]->hRoteI,hTotRoteI,last);
+    CollectAllRot(wcountI,rbins,rbins,btr[i]->hRotwI,hTotRotwI,last);
+    CollectAllRot(ecount23,rbins,rbins,btr[i]->hRote23,hTotRote23,last);
+    CollectAllRot(wcount23,rbins,rbins,btr[i]->hRotw23,hTotRotw23,last);
+    CollectAllRot(ecountI23,rbins,rbins,btr[i]->hRoteI23,hTotRoteI23,last);
+    CollectAllRot(wcountI23,rbins,rbins,btr[i]->hRotwI23,hTotRotwI23,last);
+    btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
+  }
+  last = 0;
 
-  cout << "Post-Fill loops" << endl;
+  cout << "Post-CTR Loops" << endl;
+
 
   //------------------------------------------------------------------
   // finished filling now draw
@@ -788,6 +867,10 @@ void CollectTypeRot()
   crot23->cd(4);
   hTotRotwI23->Draw("colz");
   el233->Draw();
+
+  delete hTotRote; delete hTotRoteI; delete hTotRotw; delete hTotRotwI;
+  delete hTotRote23; delete hTotRotw23; delete hTotRotwI23; delete hTotRoteI23;
+  delete crot23; delete el233; delete el2; delete el1c; delete el1cc; delete el23;
   
   // ==================================================================
   // Now look at the Rotation directions............
@@ -866,7 +949,6 @@ void CollectTypeRot()
   for(Int_t i = 0 ; i < nbeta ; i++){
     btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
      for(Int_t j = 1 ; j < hPosShiftedTot->GetNbinsX()*hPosShiftedTot->GetNbinsY() ; j++){
-	
         hPosShiftedTot->SetBinContent(j  ,hPosShiftedTot->GetBinContent(j)   + btr[i]->hPosDiffShifted->GetBinContent(j));
         hPosUnShiftedTot->SetBinContent(j,hPosUnShiftedTot->GetBinContent(j) + btr[i]->hPosDiffUnShifted->GetBinContent(j));
      }
@@ -882,8 +964,6 @@ void CollectTypeRot()
         if(iline != jline)
 	  if(GetInterSection(lEastNorm[iline],lEastNorm[jline],Xinter,Yinter) == 1)hEastIntersection->Fill(Xinter,Yinter,1);
   //------------------------------------------------------------------------------------------------------------------------
-
-	cout << "Making plots" << endl;
 
   // Draw and print the canvas
   gPad->SetGrid(1);
@@ -902,14 +982,14 @@ void CollectTypeRot()
   crot->Clear();
   hEastIntersection->Draw("colz");
   crot->Print("output_files/intersection_points_east.pdf");
-  Get2DGaussianFit(hEastIntersection,Xinter,Yinter);
+  //Get2DGaussianFit(hEastIntersection,Xinter,Yinter);
 
   for(Int_t iline = 0; iline < 5625 ; iline++){
 	Double_t angle = Return_Rotation_Angle(lEastDis[iline],Xinter,Yinter);
         if(angle > 0)hEastAngle->Fill(angle, 1.);
   }
  
-  TF1 *fgausf = new TF1("fgausf","gaus",0.01,0.05);
+  TF1 *fgausf = new TF1("fgausf","gaus",0.01,0.10);
   hEastAngle->Fit("fgausf","RME");
 
   cout << " East intersection : X = " << Xinter << "\t  Y = " << Yinter << endl;
@@ -928,7 +1008,8 @@ void CollectTypeRot()
   hTotRotw->Draw("colz");
 
   for(Int_t iline = 0; iline < hAveWest1XRot->GetNbinsX()*hAveWest1XRot->GetNbinsY(); iline++)
-          GetNorm(hAveWest1XRot,hAveWest1YRot,lWestNorm[iline],lWestDis[iline],crot,iline);
+          GetNorm(hAveEast1XRot,hAveEast1YRot,lWestNorm[iline],lWestDis[iline],crot,iline);
+          //GetNorm(hAveWest1XRot,hAveWest1YRot,lWestNorm[iline],lWestDis[iline],crot,iline);
    //------------------------------------------------------------------------------------------------------------------------
    for(Int_t iline = 0; iline < 5625 ; iline++)
      for(Int_t jline = 0 ; jline < 5625 ; jline++)
@@ -942,16 +1023,13 @@ void CollectTypeRot()
   crot->Print("output_files/intersection_points_west.pdf");
   //-------------------------------------------------------------------------------------------------------------------------
 
-  delete hTotRote; delete hTotRoteI; delete hTotRotw; delete hTotRotwI;
-  delete hTotRote23; delete hTotRotw23; delete hTotRotwI23; delete hTotRoteI23;
-
   delete crot;  delete hPosShiftedTot; delete hPosUnShiftedTot;
   delete hEastIntersection; delete hWestIntersection; delete hEastAngle;
 
   delete hAveEast1XRot; delete hAveEast1YRot;
   delete hAveWest1XRot; delete hAveWest1YRot;
 
-  delete el1; delete el1c; delete el1cc;
+//  delete el1; delete el1c; delete el1cc;
 
 }
 //---------------------------------------------------------------------------
@@ -985,8 +1063,6 @@ void CollectTDCCor()
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
 
-	cout << "TDC Corr. - Fill array " << endl;
- 
   // Collect those failures into a Graph
   
   TGraphErrors *gcorr = new TGraphErrors((int)x1.size(),&x1[0],&srate[0],0,&srater[0]);
@@ -994,19 +1070,11 @@ void CollectTDCCor()
 
   grstot = new TGraphErrors((int)x1.size(),&x1[0],&sut[0],0,&sute[0]);
  
-  cout << "Defined some stuff " << endl;
-  cout << (int)x1.size() << " " << x1[0] << " " << brate[0] << " " << brater[0]<< endl;
- 
   ColorGraphic(gcorr,2,20,2,1.,"Events with no Header/Footer","Run Number",
 	       "Summed East + West Rate s^{-1}");
-  cout << "Crash 1?" << endl;
-  ColorGraphic(gcorb,2,20,2);
-  cout << "Crash 2?" << endl;
+  ColorGraphic(gcorb,5,20,2);
   ColorGraphic(grstot,4,20,2);
-  cout << "Crash 3?" << endl;
   ColorGraphic(grtot,3,20,2);
- 
-  cout << " Color Graphics! " << endl;
  
   TCanvas *cHBrate = new TCanvas("cHBrate","cHBrate");
   cHBrate->cd();
@@ -1033,7 +1101,6 @@ void CollectTDCCor()
     }
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
-	cout << "Put results in collection " << endl;
   // Put the results in the collection histogram and 0 the array
   for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++){
     for(Int_t jbin = 1 ; jbin < rbins+1 ; jbin++){
@@ -1128,13 +1195,11 @@ void Plot_E_Chis()
   Double_t x1[MAXRUNS],y1[MAXRUNS],y1er[MAXRUNS];
   Double_t x1w[MAXRUNS],y1w[MAXRUNS],y1erw[MAXRUNS];
   
-  Int_t octn = xrand->Integer(nbeta);
-  octn = 1;
+//  Int_t octn = xrand->Integer(nbeta);
+//  octn = 1;
   cEchis->Divide(2,1);
   cEchis->cd(1);
   
-  cout << "Print Histogram for beta run " << btr[octn]->GetRunNumber() << endl;
-
   Int_t va = 0;
   for(Int_t i = 0 ; i < nbeta ; i++){
     if(btr[i]->flipperOn == 0){
@@ -1177,14 +1242,14 @@ void Plot_E_Chis()
   gEChiw->GetXaxis()->SetTitle("Run Number");
   gEChiw->GetYaxis()->SetTitle("Extrapolated Background under #beta-Spectra");
   gEChiw->Draw("AP");
-  
 
   cEchis->Print("output_files/energy_chis.pdf");
 
-  delete gEChiw;
+  delete gEChiw;  delete gEChi;
   delete xrand;
   delete cEchis;
 }
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=
 void CalcSimplSuper()
 {
@@ -1203,12 +1268,12 @@ void CalcSimplSuper()
     Get_Base_Super(k,(char*)"A9",(char*)"A12"); //  uses btr, wrote
     Get_Base_Super(k,(char*)"B1",(char*)"B4"); //   Get_Base_Super_Back
     Get_Base_Super(k,(char*)"B9",(char*)"B12"); //  to read bckr
-/*
-    Get_Base_Super_Back(k,(char*)"A1",(char*)"A4");  // Original Get_Base_Super
-    Get_Base_Super_Back(k,(char*)"A9",(char*)"A12"); //  uses btr, wrote
-    Get_Base_Super_Back(k,(char*)"B1",(char*)"B4"); //   Get_Base_Super_Back
-    Get_Base_Super_Back(k,(char*)"B9",(char*)"B12"); //  to read bckr
-*/
+
+//    Get_Base_Super_Back(k,(char*)"A1",(char*)"A4");  // Original Get_Base_Super
+//    Get_Base_Super_Back(k,(char*)"A9",(char*)"A12"); //  uses btr, wrote
+//    Get_Base_Super_Back(k,(char*)"B1",(char*)"B4"); //   Get_Base_Super_Back
+//    Get_Base_Super_Back(k,(char*)"B9",(char*)"B12"); //  to read bckr
+
     BkgdWestOne[k] = bckr[k]->BetasWest + 1.0;
     BkgdEastOne[k] = bckr[k]->BetasEast + 1.0;
     FirstWBkgTimeReal[k] = bckr[k]->CountTimeWFirstBeta;
@@ -1250,6 +1315,7 @@ void CalcSimplSuper()
     BetasEastOne[i] = btr[i]->BetasEast + 1.0;
     FirstWTimeReal[i] = btr[i]->CountTimeWFirstBeta;
     FirstETimeReal[i] = btr[i]->CountTimeEFirstBeta;
+
     FirstWTime[i] = btr[i]->CountTimeWFirstBeta - 1.0;
     FirstETime[i] = btr[i]->CountTimeEFirstBeta - 1.0;
     LastWTime[i] = btr[i]->CountTimeWBeta + 1.0;
@@ -1273,7 +1339,8 @@ void CalcSimplSuper()
     }
     for(Int_t j = 2; j < BetasEastOne[i]; j++){
     EastClockArray[i][j] = btr[i]->EastClock[j];
-    } 
+    }
+
     WestDifference[i] = GetDifference(btr[i]->CountTimeWAll,btr[i]->CountTimeWBeta);
     EastDifference[i] = GetDifference(btr[i]->CountTimeEAll,btr[i]->CountTimeEBeta);
     WestDiffFirst[i] = GetDifference(btr[i]->CountTimeWFirstBeta,btr[i]->CountTimeWFirst);
@@ -1282,6 +1349,7 @@ void CalcSimplSuper()
     LiveTimeBetaEast[i] = GetDifference(btr[i]->CountTimeEBeta,btr[i]->CountTimeEFirstBeta);
     LiveTimeAllWest[i] = GetDifference(btr[i]->CountTimeWAll,btr[i]->CountTimeWFirst);
     LiveTimeAllEast[i] = GetDifference(btr[i]->CountTimeEAll,btr[i]->CountTimeEFirst);*/
+
     DiffWestAllBeta[i] = GetDiff(btr[i]->CountTimeWAll,btr[i]->CountTimeWFirst,btr[i]->CountTimeWBeta,btr[i]->CountTimeWFirstBeta);
     DiffEastAllBeta[i] = GetDiff(btr[i]->CountTimeEAll,btr[i]->CountTimeEFirst,btr[i]->CountTimeEBeta,btr[i]->CountTimeEFirstBeta);
     if(btr[i]->flipperOn == 1){
@@ -1308,6 +1376,8 @@ void CalcSimplSuper()
     }*/
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
+
+  cout << " CalcSimplSuper Completed Open/Close Loops " << endl;
 
   fsuprat1.close();
  
@@ -1437,6 +1507,9 @@ void CalcSimplSuper()
   TGraphErrors *gPave = new TGraphErrors(4,Xpos,SupPos,0,SupPosE);
   ColorGraphic(gPave,4,20,2);
   gPave->Draw("AP");
+  gPave->GetXaxis()->SetTitle("Quadrant");
+  gPave->GetYaxis()->SetTitle("Superratio");
+  gPave->SetTitle("Quadrant Superratios");
 
   cPave->Print("output_files/positionave.pdf");
 
@@ -1454,6 +1527,8 @@ void CalcSimplSuper()
   delete fLSup3;
   delete fLSup4;  
   delete gPave;
+//  delete EastClockArray;
+//  delete WestClockArray;
   delete cPave;
 
   return;
@@ -1718,10 +1793,10 @@ void Plot_Timing()
   TH1F *hLiveTimeBetaE = new TH1F(Form("hLiveTimeBetaW"),"True Live Time East (Betas)",110,0,4400);
   TH1F *hLiveTimeAllW = new TH1F(Form("hLiveTimeAllW"),"True Live Time West (All)",110,0,4400);
   TH1F *hLiveTimeAllE = new TH1F(Form("hLiveTimeAllE"),"True Live Time East (All)",110,0,4400);*/
-  TH1F *hLiveTimeDiffW = new TH1F(Form("hLiveTimeDiffW"),"Event/Beta Live Time Diff., W",100,-0.05,6.95);
-  TH1F *hLiveTimeDiffE = new TH1F(Form("hLiveTimeDiffE"),"Event/Beta Live Time Diff., E",100,-0.05,6.95);
-  TH1F *hDiffBetaUp = new TH1F(Form("hDiffBetaUp"),"Beta Live Time Difference (E-W) Spin Up",100,-10.0,10.0);
-  TH1F *hDiffBetaDown = new TH1F(Form("hDiffBetaDown"),"Beta Live Time Difference (E-W) Spin Down",100,-10.0,10.0);
+  TH1F *hLiveTimeDiffW = new TH1F(Form("hLiveTimeDiffW"),"Event/Beta Live Time Diff., W",1000,-0.05,100.95);
+  TH1F *hLiveTimeDiffE = new TH1F(Form("hLiveTimeDiffE"),"Event/Beta Live Time Diff., E",1000,-0.05,100.95);
+  TH1F *hDiffBetaUp = new TH1F(Form("hDiffBetaUp"),"Beta Live Time Difference (E-W) Spin Up",100,-1000.0,1000.0);
+  TH1F *hDiffBetaDown = new TH1F(Form("hDiffBetaDown"),"Beta Live Time Difference (E-W) Spin Down",100,-1000.0,1000.0);
 
   for(Int_t i = 0; i < nbeta; i++) {
 
@@ -1802,7 +1877,6 @@ void Plot_Timing()
   livetime->Print("output_files/livetimes.pdf");*/
  
   for(Int_t i = 0; i < nbeta; i++) {
-
       //Fill histos.
       hLiveTimeDiffW->Fill(DiffWestAllBeta[i]);
       hLiveTimeDiffE->Fill(DiffEastAllBeta[i]);
@@ -1968,7 +2042,7 @@ void Collect_Pos()
   cPosAll->cd(4);
   hWyCm->Add(hWyCp,-1);
   hWyCm->Draw();
-  hEyCm->Add(hEyCp,-1);
+  hEyCm->Add(hEyCp,-1);    // Non-functional?;
   hEyCm->SetLineColor(2);
   hEyCm->Draw("same");
   
@@ -1978,6 +2052,10 @@ void Collect_Pos()
   delete hEyCp; delete hWyCp;
   delete hEyCm; delete hWyCm;
 
+  delete el1; delete el1r;
+  delete el2; delete el2r;
+
+  delete hTotEPos; delete hTotWPos;
 }
 //--------------------------------------------------------------------
 void Plot_23_Diff()
@@ -2014,15 +2092,18 @@ void Plot_MonRate()
   Double_t eker[MAXRUNS],wker[MAXRUNS];
   Double_t emean[MAXRUNS],wmean[MAXRUNS];
   
-  TH1F *hEastEndPoint = new TH1F("hEastEndPoint","East End Point ; E_{vis} (keV) ; Counts",
+  TH1F *hEastEndPoint = new TH1F("hEastEndPoint","End Point ; E_{vis} (keV) ; Counts",
 				 100,700,900);
-  TH1F *hWestEndPoint = new TH1F("hWestEndPoint","West End Point ; E_{vis} (keV) ; Counts",
+  TH1F *hWestEndPoint = new TH1F("hWestEndPoint","End Point ; E_{vis} (keV) ; Counts",
 				 100,700,900);				  
   
   for(int i = 0 ; i < nbeta ; i++){
     //--------------------------------------------------------------------------------------
     btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     xt[i]   = btr[i]->GetRunNumber();
+
+    btr[i]->Make_Kurie();
+
     if(btr[i]->Mon_Rate > 0 ){
 	    y[i]    = (btr[i]->heq->Integral() + btr[i]->hwq->Integral())/btr[i]->Mon_Rate;
             yer[i]  = y[i]*sqrt( 1./(btr[i]->rtime_e*btr[i]->heq->Integral()) 
@@ -2047,7 +2128,7 @@ void Plot_MonRate()
   TGraphErrors *gBdM = new TGraphErrors(nbeta,xt,y,0,yer);
   ColorGraphic(gBdM,2,20,1,1.,"Normalized #beta Rate","Run Number","#beta -Rate / Monitor 2 ");
  
-  TCanvas  *cMon = new TCanvas("cMon","Beta-Rate Divided by Monitor 2");
+  TCanvas  *cMon = new TCanvas("cMon","Beta-Rate Divided by SCS Monitor");
   cMon->cd();
   gBdM->Draw("AP");
    
@@ -2065,7 +2146,7 @@ void Plot_MonRate()
   TGraph *gMeanE = new TGraph(nbeta,xt,emean);
   TGraph *gMeanW = new TGraph(nbeta,xt,wmean);
   
-  ColorGraphic(gKurieE,2,20,1,1.,"East End Point","Run Number","Extracted End Point (keV)");
+  ColorGraphic(gKurieE,2,20,1,1.,"End Point","Run Number","Extracted End Point (keV)");
   ColorGraphic(gKurieW,4,20,1);
   ColorGraphic(gMeanE,2,20,1,1.,"Mean Energy","Run Number","Mean Energy (keV)");
   ColorGraphic(gMeanW,4,20,1);
@@ -2438,7 +2519,17 @@ void Collect_Octets()
   hLastFiveEBkg->Fill(SumLastFiveEBkg[k]);
   hLastFiveWBkg->Fill(SumLastFiveWBkg[k]);
   }
+/*
+  delete *SumFirstPThreeE; delete *SumFirstPThreeW;
+  delete *SumLastPThreeE; delete *SumLastPThreeW;
+  delete *SumFirstFiveE; delete *SumFirstFiveW;
+  delete *SumLastFiveE; delete *SumLastFiveW;
 
+  delete[] *SumFirstPThreeEBkg; delete[] *SumFirstPThreeWBkg;
+  delete[] *SumLastPThreeEBkg; delete[] *SumLastPThreeWBkg;
+  delete[] *SumFirstFiveEBkg; delete[] *SumFirstFiveWBkg;
+  delete[] *SumLastFiveEBkg; delete[] *SumLastFiveWBkg;
+*/
   TCanvas *pthreef = new TCanvas("pthreef", "pthreef",10,10,600,600);
   pthreef->Divide(2,2);
   pthreef->cd(1);
@@ -2471,6 +2562,8 @@ void Collect_Octets()
   hFirstPThreeWBkg->GetYaxis()->SetTitle("NBkgRuns");
   hFirstPThreeWBkg->GetYaxis()->CenterTitle();
   pthreef->Print("output_files/pthreef.pdf");
+
+  delete pthreef;
 
   //Make plots of first 5.0 sec per run of east/west detectors.
 
@@ -2508,6 +2601,8 @@ void Collect_Octets()
   hFirstFiveWBkg->GetYaxis()->SetTitle("NBkgRuns");
   hFirstFiveWBkg->GetYaxis()->CenterTitle();
   pfivef->Print("output_files/pfivef.pdf");
+
+  delete pfivef; 
 
 //  TPaveStats *tFirstFiveE = (TPaveStats*) hFirstFiveE->FindObject("stats");
   TPaveStats *tFirstFiveE;
@@ -2557,6 +2652,8 @@ void Collect_Octets()
   hLastPThreeWBkg->GetYaxis()->CenterTitle();
   pthreel->Print("output_files/pthreel.pdf");
 
+  delete pthreel;
+
   //Make plots of last 5.0 sec per run in east/west detectors.
 
   TCanvas *pfivel = new TCanvas("pfivel", "pfivel",10,10,600,600);
@@ -2593,6 +2690,9 @@ void Collect_Octets()
   hLastFiveWBkg->GetYaxis()->SetTitle("NBkgRuns");
   hLastFiveWBkg->GetYaxis()->CenterTitle();
   pfivel->Print("output_files/pfivel.pdf");
+
+  delete pfivel; 
+
   TPaveStats *tLastFiveE = (TPaveStats*) hLastFiveE->FindObject("stats");
   tLastFiveE->SetName("LastFiveE Stats");
   double XEL1 = tLastFiveE->GetX1NDC();
@@ -3019,6 +3119,9 @@ void Collect_Octets()
   hFESimalEventss->GetYaxis()->SetTitle("NSimsRuns");
   hFESimalEventss->GetYaxis()->CenterTitle();
   pfivesims->Print("output_files/pfivesims.pdf");
+  
+  delete pfivesims;
+
   TPaveStats *tFESimalEventss = (TPaveStats*) hFESimalEventss->FindObject("stats");
   tFESimalEventss->SetX1NDC(XEF1);
   tFESimalEventss->SetX2NDC(XEF2);
@@ -3121,6 +3224,11 @@ void Collect_Octets()
    legtwfb->Draw();
   pfivefover->Print("output_files/pfivefover.pdf");
 
+   delete legtefb; delete legtwfb; delete legtef; delete legtwf; 
+  delete tFirstFiveE;  delete tFESimalEvents; delete tFESimalEventss;
+  delete tFirstFiveW;  delete tFWSimalEvents; delete tFWSimalEventss;
+  delete pfivefover;
+
   //Make plots and overlays of data and simulations for last 5.0 sec per run of each detector.
 
   TCanvas *pfivelover = new TCanvas("pfivelover", "pfivelover",10,10,600,600);
@@ -3202,6 +3310,10 @@ void Collect_Octets()
    legtwlb->Draw();
   pfivelover->Print("output_files/pfivelover.pdf");
 
+  delete tLESimalEvents; delete tLESimalEventss; delete tLastFiveE;  delete tLastFiveW;  delete tLWSimalEvents; delete tLWSimalEventss;
+  delete legtel; delete legtelb; delete legtwlb; delete legtwl;
+  delete pfivelover;
+
   //Fill histogram with superratio data.
 
   for(Int_t i = 0; i < noct ; i++){
@@ -3261,7 +3373,8 @@ void Collect_Octets()
       
       TotalCounts          += octet[i]->TotCounts;
       CurrentCounts.push_back(TotalCounts);
-      OctDate.push_back(btr[octet[i]->GetIndex()]->RunDate->GetDate());
+      //OctDate.push_back(btr[octet[i]->GetIndex()]->RunDate->GetDate());
+      OctDate.push_back(btr[octet[i]->FirstRunIndex]->RunDate->Convert());
 
       for(Int_t ii = 0 ; ii < 9 ; ii++){
 	      Fill_Asymmetry_Vector_Oct(A_Aves[ii],octet[i]->A_multi[ii],octet[i]->A_multier[ii],FullOct);
@@ -3481,6 +3594,7 @@ void Collect_Octets()
   TGraphErrors *gOctAave  = new TGraphErrors((int)A_Aves[2].run_number.size()-1,&A_Aves[2].run_number[0],&A_Aves[2].A_ave[0],0,&A_Aves[2].A_error[0]);
   TGraphErrors *gSuperA   = new TGraphErrors((int)A_super.run_number.size()-1,&A_super.run_number[0],&A_super.A_ave[0],0,&A_super.A_error[0]);
   TGraphErrors *gQuartetA = new TGraphErrors((int)A_quat.run_number.size()-1,&A_quat.run_number[0],&A_quat.A_ave[0],0,&A_quat.A_error[0]);
+//  TGraph *gCnts           = new TGraph(noct-1,&OctDate[0],&CurrentCounts[0]);
   TGraph *gCnts           = new TGraph(noct-1,&OctDate[0],&CurrentCounts[0]);
   TGraphErrors *gAcho     = new TGraphErrors(9,xchoice,A_aves_tot,0,A_aves_toter);
   //-------------------------------------------------------------------------------
@@ -3490,9 +3604,9 @@ void Collect_Octets()
   ColorGraphic(gAcho,4,20,2,0.8,"Asymmetry by Analysis Choice","Analysis Choice","Raw Asymmetry");
   //-------------------------------------------------------------------------------------------------------------
   ColorGraphic(gsumA,2,20,2);
-  ColorGraphic(gsumB,3,20,2);
-  ColorGraphic(gmultiA,4,20,2);
-  ColorGraphic(gmultiB,1,20,2);
+  ColorGraphic(gsumB,2,20,2);
+  ColorGraphic(gmultiA,3,20,2);
+  ColorGraphic(gmultiB,3,20,2);
   //--------------------------------------------------------------------------------------------------------------  
   ColorGraphic(gOctAave ,2,20,2,0.6,"Octet Integral Asymmetry 175 - 775 keV","Octet Number","Asym_{raw}");
   ColorGraphic(gSuperA  ,2,20,2,0.6,"Super-Ratio Integral Asymmetry 175 - 775 keV","Super-Ratio Number","Asym_{raw}");
@@ -3506,15 +3620,24 @@ void Collect_Octets()
   cdiff->cd(1);
   gsumA->Draw("AP");
   gmultiA->Draw("P");
+  gsumA->GetXaxis()->SetTitle("Octet Number");
+  gsumA->GetYaxis()->SetTitle("Asymmetry");
+  gsumA->SetTitle("A-type Octet Asymmetries, Sum vs. Product");
   cdiff->cd(2);
   gsumB->Draw("AP");
   gmultiB->Draw("P");
+  gsumB->GetXaxis()->SetTitle("Octet Number");
+  gsumB->GetYaxis()->SetTitle("Asymmetry");
+  gsumB->SetTitle("B-type Octet Asymmetries, Sum vs. Product");
   cdiff->cd(3);
   ColorGraphic(gCnts,2,20,2);
   gCnts->GetXaxis()->SetTimeDisplay(1);
-  gCnts->GetXaxis()->SetTimeFormat("%d / %m");
+  gCnts->GetXaxis()->SetTimeFormat("%d-%b");
   gCnts->Draw("AP");
-  cdiff->Print("output_files/sumproductdiffernece.pdf");
+  gCnts->GetXaxis()->SetTitle("Day");
+  gCnts->GetYaxis()->SetTitle("Counts");
+  gCnts->SetTitle("Counts in Octet per Day");
+  cdiff->Print("output_files/sumproductdifference.pdf");
 
   // Plot the Asymmetry my analysis choice
   TCanvas *cAnalysisChoice = new TCanvas("cAnalysisChoice","Analysis Choice");
@@ -3534,7 +3657,7 @@ void Collect_Octets()
   fchanalysis.close();
 
   TGraph *gMonte = new TGraph(9,xchoice,MonteA);
-  ColorGraphic(gMonte,4,20,2);
+  ColorGraphic(gMonte,2,20,2);
   gAcho->Draw("AP");
   gMonte->Draw("P");
   gAcho->GetXaxis()->Set(1000,0,10);
@@ -3561,15 +3684,15 @@ void Collect_Octets()
   delete gQuartetA;
   delete gCnts;
   delete cdiff;
-/*
-  delete hTimeratio; delete hTimeratioall;
-  delete hSupsim; delete hSupalsim;
+
+//  delete hTimeratio; delete hTimeratioall;
+//  delete hSupsim; delete hSupalsim;
   delete hLWSimalEvents; delete hLESimalEvents;
   delete hFWSimalEvents; delete hFESimalEvents;
-  delete hSupsims; delete hSupalsims;
-  delete hLWSimalEventss; delete hLESimalEvents;
+//  delete hSupsims; delete hSupalsims;
+  delete hLWSimalEventss; delete hLESimalEventss;
   delete hFWSimalEventss; delete hFESimalEventss;
-*/
+
   delete hFirstPThreeE; delete hFirstPThreeW;
   delete hFirstPThreeEBkg; delete hFirstPThreeWBkg;
   delete hLastPThreeE; delete hLastPThreeW;
@@ -3580,8 +3703,6 @@ void Collect_Octets()
   delete hLastFiveE; delete hLastFiveW;
   delete hLastFiveEBkg; delete hLastFiveWBkg;
 
-
-  
   gStyle->SetOptStat(kFALSE); 
 };
 
@@ -3796,11 +3917,12 @@ void Plot_RawAsymmetries(TGraphErrors *g1,TGraphErrors *g2,TGraphErrors *g3,Int_
   cass->Print("output_files/asymmetries_out.pdf");
   cass->Print("output_files/asymmetries_out.C");
   
-  delete flO;
-  delete flQ;
-  delete flS;
-  delete legS;
+  delete flO;  delete flQ;  delete flS;
+  delete legO; delete legQ; delete legS;
   delete cass;
+
+//  delete pOctV; delete pQutV; delete pSupV;
+//  delete pOctR; delete pQutR; delete pSupR;
  
   delete hOctResid; delete hQutResid; delete hSupResid;
  
@@ -3824,10 +3946,7 @@ void Average_A()
   // Calculate the weighted average of the Asymmetry
   for(Int_t j = 0 ; j < noct ; j++){
 
-    //    octet[j]->Initialize_Histo(j);
-    //  octet[j]->Find_Runs(btr,bckr,nbeta);
 //    if(octet[j]->nA2[2] != 0 || octet[j]->nA5[2] != 0 )
-      cout << j << "\t" << octet[j]->GetFirst() << endl;
       if(octet[j]->GetFirst() < 14888){
 	Average_All_Hists(octet[j]->hAsyA[2],y,yer);
         Average_All_Hists(octet[j]->hAsyB[2],yb,yber);
@@ -3837,14 +3956,8 @@ void Average_A()
         Average_All_Hists(octet[j]->hAsyB[2],y1b,y1ber);
         Average_All_Hists(octet[j]->hAsyTot[2],y1tot,y1toter);
       }
-     // octet[j]->Remove_Octet();
   }
   // Set the bin center for all graphs
-
-  // octet[0]->Initialize_Histo(0);
-  //octet[0]->Find_Runs(btr,bckr,nbeta);
-
-  cout << "Get NBins X for octet[0] = " << octet[0]->hAsyA[2]->GetNbinsX() << endl;
 
   for(Int_t i = 0 ; i <= octet[0]->hAsyA[2]->GetNbinsX()-1 ;i++)
        x[i]      = octet[0]->hAsyA[2]->GetBinCenter(i+1);
@@ -3859,7 +3972,7 @@ void Average_A()
   Return_Asymmetry(y1b,y1ber,octet[0]->hAsyB[2]->GetNbinsX());
   Return_Asymmetry(y1tot,y1toter,octet[0]->hAsyTot[2]->GetNbinsX());
   //============================================================================
-//  octet[0]->Remove_Octet();
+
   // Output to a text file the results 
   fstream fasye,fasye2;
   if(btr[0]->GetRunNumber() < 12000){
@@ -3869,8 +3982,6 @@ void Average_A()
     fasye.open("output_files/asymmetry_e_a0_16.txt",fstream::out);
     fasye2.open("output_files/asymmetry_e_a17_50.txt",fstream::out);
   }
-//  octet[0]->Initialize_Histo(0);
-//  octet[0]->Find_Runs(btr,bckr,nbeta);
 
   for(Int_t i = 0 ; i< octet[0]->hAsyTot[2]->GetNbinsX() ; i++){
     fasye << x[i] << "\t" << ytot[i] << "\t" << ytoter[i] << "\t" << y[i];
@@ -3878,9 +3989,9 @@ void Average_A()
     fasye2 << x[i] << "\t" << y1tot[i] << "\t" << y1toter[i] << "\t" << y1[i];
     fasye2 << "\t" << y1er[i] << "\t" << y1b[i] << "\t" << y1ber[i] << endl;
   }
-//  octet[0]->Remove_Octet();
   fasye.close();
   fasye2.close();
+
   //------------------------------------------------------------------
   TGraphErrors *gAvsE    = new TGraphErrors((int)x.size(),&x[0],&y1[0],0,&y1er[0]);
   TGraphErrors *gAvsEb   = new TGraphErrors((int)x.size(),&x[0],&y1b[0],0,&y1ber[0]);
@@ -3923,9 +4034,9 @@ void Average_A()
   fAbeta2->SetLineColor(2);
   gAvsE->GetYaxis()->SetRangeUser(-0.4,0.4);
   
-  Double_t Aave = ((fAbeta->GetParameter(0)/Power(fAbeta->GetParError(0),2))
+/*  Double_t Aave = ((fAbeta->GetParameter(0)/Power(fAbeta->GetParError(0),2))
       + Abs((fAbeta2->GetParameter(0)/Power(fAbeta2->GetParError(0),2)))) /
-      (1./Power(fAbeta->GetParError(0),2) + 1./Power(fAbeta2->GetParError(0),2));
+      (1./Power(fAbeta->GetParError(0),2) + 1./Power(fAbeta2->GetParError(0),2));   */
   
   TLegend *lAs = new TLegend(0.3,0.7,0.9,0.9);
   lAs->SetFillColor(0);
@@ -3970,9 +4081,6 @@ void Average_A()
   lAst->Draw("same");
   cGreat->Print("output_files/asymmetry_v_e.pdf");
 
-//  octet[0]->Initialize_Histo(0);
-//  octet[0]->Find_Runs(btr,bckr,nbeta);
-
   TH1F *hAsymErrs = new TH1F("hAsymErrs",
 			     "Asymmetry Absolute Statistical Errors;Reconstructed Energy (keV);Absolute Error",
 			     octet[0]->hAsyTot[2]->GetNbinsX(),0.,2000.);
@@ -3982,17 +4090,14 @@ void Average_A()
 
   for(Int_t i = 0 ; i < 80 ; i++){
     X_per.push_back(0.);
-    if(ytot[i] != 0)
-      A_per_errors.push_back(100.*Abs(ytoter[i]/ytot[i]));
+    if(y1tot[i] != 0)
+      A_per_errors.push_back(100.*Abs(y1toter[i]/y1tot[i]));
     else 
       A_per_errors.push_back(1.);
     
     hAsymErrs->SetBinContent(i,A_per_errors[i]);
     
   }  
-//  octet[0]->Remove_Octet();
-
-
   
   ColorGraphic(hAsymErrs,2,20,2);
   hAsymErrs->Draw("");
@@ -4008,6 +4113,7 @@ void Average_A()
   delete gAvsE; delete gAvsEb; delete gAvsEtot;
   delete fAbeta; delete fAbeta2; delete lAs;
   delete fAbetat; delete fAsyOvr; delete lAst;
+
 }
 
 void Collect_TvsE()
@@ -4048,7 +4154,9 @@ void Collect_TvsE()
     }
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
-  
+ 
+  cout << "DEBUG - TvsE open/close loop complete" << endl;
+ 
   for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++){
     for(Int_t jbin = 1 ; jbin < rbins+1 ; jbin++){
       hTotETimeVsE->SetBinContent(ibin,jbin,ecount[ibin-1][jbin-1]);
@@ -4144,24 +4252,27 @@ void Collect_TvsE()
   ColorGraphic(gMcTw,4,7,2,0.6); 
   ColorGraphic(gEdiffs,4,7,2);
 
-  check->cd(3);
+  check->cd(4);
   gAveTe->Draw("AP");
   gAveTe->GetXaxis()->SetRangeUser(20,170);
   gMcTe->Draw("l");
-  check->cd(4);
+  check->cd(5);
   gAveTw->Draw("AP");
   gAveTw->GetXaxis()->SetRangeUser(20,170);
   gMcTw->Draw("l");
-  check->cd(5);
+  check->cd(6);
   gEdiffs->Draw("AP");
+  gEdiffs->GetXaxis()->SetTitle("Time (bins?)");
+  gEdiffs->GetYaxis()->SetTitle("Disagreement btw. Data and MC");
+  gEdiffs->SetTitle("East Data-MC Comparison for T vs. E");
 
   check->Print("output_files/energy_vs_timing.pdf");
   
-  delete gMcTe;
-  delete gAveTe;
-  delete gMcTw;
-  delete gAveTw;
+  delete gMcTe;  delete gAveTe;
+  delete gMcTw;  delete gAveTw;
+  delete gEdiffs;
   delete check;
+
 }
 //----------------------------------------------------------------------------------------------------------
 void Collect_23Anode()
@@ -4180,7 +4291,7 @@ void Collect_23Anode()
   CleanArray(wcount,rbins,rbins);
  
   for(Int_t i = 0 ; i <nbeta ; i++){
-    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
+    btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],1);
     for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++){
       for(Int_t jbin = 1 ; jbin < rbins+1 ; jbin++){
         if(btr[i]->hE23Anode2d->GetBinContent(ibin,jbin) > 0)
@@ -4195,10 +4306,10 @@ void Collect_23Anode()
   for(Int_t ibin = 1 ; ibin < rbins+1 ; ibin++){
     for(Int_t jbin = 1 ; jbin < rbins+1 ; jbin++){
       hTE23Anode2d->SetBinContent(ibin,jbin,ecount[ibin-1][jbin-1]);
-      hTW23Anode2d->SetBinContent(ibin,jbin,wcount[ibin-1][jbin-1]);
+      hTW23Anode2d->SetBinContent(jbin,ibin,wcount[ibin-1][jbin-1]);
     }
   }
-  
+ 
   TCanvas *cAnode = new TCanvas("cAnode","cAnode");
   cAnode->Divide(2,2);
   cAnode->cd(1);
@@ -4268,6 +4379,9 @@ void Collect_Stuff()
   ColorGraphic(gS2Nw,4,20,2);
   
   gS2Ne->Draw("AP");
+  gS2Ne->GetXaxis()->SetTitle("Run Number");
+  gS2Ne->GetYaxis()->SetTitle("S/N");
+  gS2Ne->SetTitle("Signal To Noise");
   gS2Nw->Draw("P");
 
   cStN->Print("output_files/SigToNoise.pdf");
@@ -4499,9 +4613,19 @@ void Collect_Energy_Spectra()
    
   TCanvas *c1bk = new TCanvas("c1bk","One Clock back?",700,800);
   c1bk->Divide(3,4);
-  TLegend *legSpc1,*legSpc2,*legSpc3,*legSpc4,*legSpc5,*legSpc6,*legSpc7,*legSpc8;
-  TLegend *legSpc9,*legSpc10,*legSpc11,*legSpc12;
+  TLegend *legSpc1 = new TLegend();
+  TLegend *legSpc2 = new TLegend(); 
+  TLegend *legSpc3 = new TLegend();
+  TLegend *legSpc4 = new TLegend();
+  TLegend *legSpc5 = new TLegend(); 
+  TLegend *legSpc6 = new TLegend();
 
+  TLegend *legSpc7 = new TLegend();
+  TLegend *legSpc8 = new TLegend(); 
+  TLegend *legSpc9 = new TLegend();
+  TLegend *legSpc10 = new TLegend();
+  TLegend *legSpc11 = new TLegend(); 
+  TLegend *legSpc12 = new TLegend();
 
     btr[3]->Load_Histograms(bckr[btr[3]->Bkg_index],0);
   DrawEnerPanel(hWFlipperOff  ,btr[3]->hEERef , c1bk,1,legSpc1,west_time_off);
@@ -4523,7 +4647,11 @@ void Collect_Energy_Spectra()
   DrawEnerPanel(hEFlipperOn_I ,btr[6]->hEERef1, c1bk,11,legSpc11,east_time_on);
   DrawEnerPanel(hEFlipperOn_2 ,btr[6]->hEERef2, c1bk,12,legSpc12,east_time_on);
     btr[6]->Remove_Histograms(bckr[btr[6]->Bkg_index]);
-  
+ 
+  delete legSpc1;  delete legSpc2;  delete legSpc3;  delete legSpc4;
+  delete legSpc5;  delete legSpc6;  delete legSpc7;  delete legSpc8;
+  delete legSpc9;  delete legSpc10;  delete legSpc11;  delete legSpc12;
+ 
     btr[1]->Load_Histograms(bckr[btr[1]->Bkg_index],0);
   btr[1]->hEERef->Scale(hEFlipperOn->Integral(1,80)/btr[1]->hEERef->Integral(1,80));
   btr[1]->hEERef1->Scale(1./btr[1]->hEERef1->Integral(1,80));
@@ -4684,19 +4812,17 @@ void Collect_Energy_Spectra()
   gEF2->Draw("P");
   
   cETChi->cd(3);
-
   gWO0->Draw("AP");
   gWO1->Draw("P");
   gWO2->Draw("P");
   
   cETChi->cd(4);
-
   gWF0->Draw("AP");
   gWF1->Draw("P");
   gWF2->Draw("P");
   
   cETChi->Print("output_files/EnergyChi.pdf");
-
+/*
   TCanvas *cFinal = new TCanvas("cFinal","Final");
   cFinal->Divide(2,1);
   cFinal->cd(1);
@@ -4705,7 +4831,7 @@ void Collect_Energy_Spectra()
   TH1F *hEFlipperClone = (TH1F*)hEFlipperOn->Clone("hEFlipperClone");
   hEFlipperClone->Draw();
   cFinal->Print("output_files/Final.pdf");
-
+*/
   //------------------------------------------------------
   // output the rough super ratio 
   
@@ -4718,7 +4844,7 @@ void Collect_Energy_Spectra()
   Double_t As_quick = (1.-sqrt(SS))/(1.+sqrt(SS));
   cout<<"Simple Super ratio for Type 2/3's is " << As_quick << endl;
   
-  delete cFinal;
+//  delete cFinal;  delete hEFlipperClone;
   delete cETChi;
  
   delete gEO0; delete gEO1; delete gEO2;
@@ -5304,7 +5430,7 @@ void GammaBack()
   cNoMWPC->Divide(2,2);
   cNoMWPC->cd(1);
 
-  TLegend *lEst;
+  TLegend *lEst = new TLegend();
   DrawMWPCPanel1(hEFlipperOn_G,hEFlipperOn_S,hEFlipperOff_G,hEFlipperOff_S,lEst,interEof,reofre,interEon,reonre);
 
   cNoMWPC->cd(2);
@@ -5336,7 +5462,7 @@ void GammaBack()
 
   cNoMWPC->cd(3);
 
-  TLegend *lWst;
+  TLegend *lWst = new TLegend();
   DrawMWPCPanel1(hWFlipperOn_G,hWFlipperOn_S,hWFlipperOff_G,hWFlipperOff_S,lWst,interWof,rwofre,interWon,rwonre);
 
   cNoMWPC->cd(4);
@@ -5393,6 +5519,7 @@ void GammaBack()
  */ 
   delete mgRe;
   delete lEn;
+  delete lEst;
   delete lWst;
   delete fWnl;
   delete fWfl;
@@ -5416,9 +5543,9 @@ void Collect_TDCDiff()
 {
   
   TH1F *hTDCDiffTot_On  = new TH1F("hTDCDiffTot_On","#Delta TDC Flipper On;Counts; TDCE-TDCW"
-				   ,1000,-200,200);
+				   ,2000,-200,800);
   TH1F *hTDCDiffTot_Off = new TH1F("hTDCDiffTot_Off","#Delta TDC Flipper Off;Counts; TDCE-TDCW"
-				   ,1000,-200,200);
+				   ,2000,-200,800);
   
   for(Int_t i = 0 ; i < nbeta ;i++){
     btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
@@ -5490,8 +5617,6 @@ void Collect_Gammas()
 void Plot_ChiDis()
 {
 
- cout << "Start Plot_ChiDis " << endl;
- 
   TF1 *fbeta2 = new TF1("fbeta2",PoverE,0,2000,1);  
   fbeta2->SetParameter(0,1.);
   TF1 *fline  = new TF1("fline","[0]",0,1000);
@@ -5501,7 +5626,6 @@ void Plot_ChiDis()
 
   fstream fch;
   
- cout << "Define chi square text out " << endl;
   if(btr[0]->GetGeo()!=2){
     fch.open(Form("output_files/chi_squares_%d.txt",btr[0]->GetGeo()),fstream::out);
   } else {
@@ -5512,26 +5636,18 @@ void Plot_ChiDis()
     }
   }
  
- cout << "Open octet[0] " << endl;
-//  octet[0]->Initialize_Histo(0);
-//  octet[0]->Find_Runs(btr,bckr,nbeta);
   TH1F *hChiOct = new TH1F("hChiOct","#chi^{2} Distribution",40,0.,40.);
   TH1F *hTest   = new TH1F("hTest","testing",octet[0]->hAsyTot[2]->GetNbinsX()
 			      		    ,octet[0]->hAsyTot[2]->GetBinCenter(1) - octet[0]->hAsyTot[2]->GetBinWidth(1)/2.
 					    ,octet[0]->hAsyTot[2]->GetBinCenter(octet[0]->hAsyTot[2]->GetNbinsX()) + 
  			                     octet[0]->hAsyTot[2]->GetBinWidth(1)/2.);
-//  octet[0]->Remove_Octet(); 
- cout << "Close octet[0], start of octet loop " << endl;
   for(Int_t i = 0 ; i < noct ; i++){
-//    octet[i]->Initialize_Histo(i);
-//    octet[i]->Find_Runs(btr,bckr,nbeta);
     for(Int_t j = 1 ; j <= octet[i]->hAsyTot[2]->GetNbinsX() ; j++){
       hTest->SetBinContent(j,octet[i]->hAsyTot[2]->GetBinContent(j) / fbeta2->Eval(octet[i]->hAsyTot[2]->GetBinCenter(j)));
       hTest->SetBinError(j,octet[i]->hAsyTot[2]->GetBinError(j) / fbeta2->Eval(octet[i]->hAsyTot[2]->GetBinCenter(j)));
     }   hTest->Fit(fline,"REMQ","",octet[i]->hAsyTot[2]->GetBinCenter(nlow),octet[i]->hAsyTot[2]->GetBinCenter(nhigh));
     hChiOct->Fill(fline->GetChisquare());
     fch << i << "\t" << fline->GetChisquare() << endl;
-//    octet[i]->Remove_Octet();
   }
   fch.close();
  cout << "Finished octet loop " << endl;
@@ -5552,6 +5668,15 @@ void Plot_ChiDis()
   delete fline;
   delete fbeta2;
   delete cTest;    
+
+  for(Int_t j=0; j<noct; j++){
+    for(Int_t qq=0; qq< 20; qq++){
+      delete octet[j]->hAsyA[qq];
+      delete octet[j]->hAsyB[qq];
+      delete octet[j]->hAsyTot[qq];
+    }
+  }
+
 }
 
 void PrintPDF()
@@ -5893,7 +6018,7 @@ void TrackAnodeMPV()
   cAnodeTrack->cd();
   gEastAnodeMPV->Draw("AP");
   gEastAnodeMPV->GetXaxis()->SetTitle("Beta Run Number");
-  gEastAnodeMPV->GetYaxis()->SetTitle("Landau MPV parameter from Anode");
+  gEastAnodeMPV->GetYaxis()->SetTitle("Anode MPV (Landau)");
   gEastAnodeMPV->SetTitle("Anode MPV");
   gWestAnodeMPV->Draw("P");
   gEastAnodeMPV->GetYaxis()->SetRangeUser(0,4);
@@ -5970,7 +6095,7 @@ void average_type1()
   for(Int_t i = 0 ; i < nbeta ; i++){
     btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
     for(Int_t j = 1 ; j <= 100 ; j++){
-      double epk1 = btr[i]->hEType1_Primary->GetBinCenter(j);
+//      double epk1 = btr[i]->hEType1_Primary->GetBinCenter(j);
       hE1Type_Pr->SetBinContent(j,hE1Type_Pr->GetBinContent(j) + btr[i]->hEType1_Primary->GetBinContent(j)*btr[i]->rtime_e);
       hE1Type_Sc->SetBinContent(j,hE1Type_Sc->GetBinContent(j) + btr[i]->hEType1_Secondary->GetBinContent(j)*btr[i]->rtime_e);
       hW1Type_Pr->SetBinContent(j,hW1Type_Pr->GetBinContent(j) + btr[i]->hWType1_Primary->GetBinContent(j)*btr[i]->rtime_w);
@@ -6004,13 +6129,14 @@ void average_type1()
   hSimT1p->Scale(hE1Type_Pr->Integral()/hSimT1p->Integral());
   hSimT2p->Scale(hW1Type_Pr->Integral()/hSimT2p->Integral());
 
-  hE1Type_Pr->Draw("e0 x0");
+//  hE1Type_Pr->Draw("e0 x0");
+  hE1Type_Pr->Draw("");
   hE1Type_Pr->GetXaxis()->SetTitle("E_{vis}(primary) / E_{vis}(total)");
-  hE1Type_Pr->GetXaxis()->CenterTitle();
-  hE1Type_Pr->GetYaxis()->CenterTitle();
+//  hE1Type_Pr->GetXaxis()->CenterTitle();
+//  hE1Type_Pr->GetYaxis()->CenterTitle();
   hE1Type_Pr->GetXaxis()->SetNdivisions(509);
  // hE1Type_Sc->Draw("HIST same");
-  hW1Type_Pr->Draw("same e0 x0");
+  hW1Type_Pr->Draw("same");
   hSimT1p->Draw("hist same");
   hSimT2p->Draw("hist same");
   //hW1Type_Sc->Draw("HIST same");

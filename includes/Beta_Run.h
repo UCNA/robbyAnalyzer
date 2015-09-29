@@ -26,7 +26,7 @@ class Beta_Run : public Run {
 
     // some functions that do shit.............................
     
-    Int_t    Fill(Int_t n,Int_t remake,Double_t *sep);
+    Int_t    Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun);
     void     FillKurie(TH1F *hESpec,TH1F *hKurie);
     Int_t    Draw_2d(Int_t nr,Int_t n);
     Int_t    Draw_Hists(Int_t n);

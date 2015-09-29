@@ -23,8 +23,6 @@ void CollectAllRot(Double_t x[][150],Int_t xbin,Int_t ybin,TH2F *h,TH2F *h2,Int_
   
   for(Int_t i = 1 ; i < xbin + 1 ; i++){
     for(Int_t j = 1 ; j < ybin + 1 ; j++){
-	//std::cout << "Dummy test CollectAllRot " << h->GetEntries() << std::endl;
-
       x[i-1][j-1] += h->GetBinContent(i,j);
     }
   }
@@ -128,7 +126,6 @@ Double_t Rate_Error(Float_t r1,Float_t r2,Float_t t1,Float_t b1,Float_t b2)
   using namespace TMath;
   
   Double_t er;
-//  std::cout << r1 << " " << b1 << "  " << r2 << "  " << b2 << std::endl;
   er  = (r1*t1 + b1)/Power((r1*t1 - b1),2);
   er += (r2*t1 + b2)/Power((r2*t1 - b2),2);
      
@@ -472,9 +469,9 @@ void GetNorm(TH2F *hAveXRot,TH2F *hAveYRot,TLine *&lNorm,TArrow *&aDis,TCanvas *
      NormVec = DisVec.Cross(zhat); // Normal Vector
      NormVec *= 50./NormVec.Mag();
      //-----------------------------------------------------------------------------
-     Double_t slope = (NormVec(0) > 0) ? NormVec(1)/NormVec(0) : 0;
+//     Double_t slope = (NormVec(0) > 0) ? NormVec(1)/NormVec(0) : 0;
      // intercept
-     Double_t intercept = xpos*tan(NormVec.Angle(xhat)) + ypos;
+//     Double_t intercept = xpos*tan(NormVec.Angle(xhat)) + ypos;
      // ----------------------------------------------------------------------------
      aDis->SetLineWidth(1);
      aDis->SetFillColor(1);
@@ -523,7 +520,7 @@ Int_t GetInterSection(TLine *Line1,TLine *Line2,Double_t &Xin,Double_t &Yin)
     	 Xin = (inter2 - inter1 ) / (slope1 - slope2);
      
      	 Double_t Y1 = Xin*slope1 + inter1;
-     	 Double_t Y2 = Xin*slope2 + inter2;
+//     	 Double_t Y2 = Xin*slope2 + inter2;
          Yin = Y1;
 
          if(Abs(Yin) > 200 || Abs(Xin) >200){
@@ -637,7 +634,10 @@ void DrawEnerPanel(TH1F *hData,TH1F *hMC,TCanvas *c,Int_t npad,TLegend *lleg,Dou
   if(nt ==-1) nt = 2;
   c->cd(npad);
   hData->GetXaxis()->SetRangeUser(0,1000);
-   hMC->Scale(hData->Integral(1,20)/hMC->Integral(1,20));
+
+  std::cout << " Events in hData/hMC " << hData->GetEntries() << " " << hMC->GetEntries() << std::endl;
+
+  hMC->Scale(hData->Integral(1,20)/hMC->Integral(1,20));
   //  Double_t chi = hData->Chi2Test(hMC,"WW P");
   vector<Double_t> diff;
   Double_t chi2  = 0;

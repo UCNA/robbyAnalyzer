@@ -55,28 +55,28 @@ void Run::DeleteHistos()
   delete hpw;
   delete heq;
   delete hwq;
-//  delete heqB;
+//  delete heqB; //
   delete heqC;
-//  delete heqD;
-  delete heqE;
+//  delete heqD; //
+//  delete heqE; //
   delete heqF;
   delete heqG;
-//  delete heqH;
-//  delete heqI;
+//  delete heqH; //
+//  delete heqI; //
 //  delete hwqB;
   delete hwqC;
 //  delete hwqD;
-  delete hwqE;
+//  delete hwqE;
   delete hwqF;
   delete hwqG;
 //  delete hwqH;
 //  delete hwqI;
   for(Int_t i = 0 ; i < 10 ; i++){
-    delete hEHC[i];
+    delete hEHC[i];  //
     delete hWHC[i];
   }
-  delete hte;
-  delete htw;
+//  delete hte; //
+//  delete htw;
   delete hApose;
   delete hAposw;
   delete hPsDfET23;
@@ -87,18 +87,18 @@ void Run::DeleteHistos()
   delete he1;
   delete he2;
   delete he3;
-  delete he4;
-*/  delete hecy;
-  delete hwcy;
+  delete he4; */
+//  delete hecy;  // Look to be deprecated
+//  delete hwcy;  //  no calls to Cal_Run exist.
   delete hEERef;
   delete hEERef1;
   delete hEERef2;
   delete hEWRef;
   delete hEWRef1;
   delete hEWRef2;
-  delete hEmuon;
+  delete hEmuon; //
   delete hWmuon;
-  delete hESigNos;
+  delete hESigNos; //
   delete hWSigNos;
   delete hENoMWPC;
   delete hWNoMWPC;
@@ -110,10 +110,11 @@ void Run::DeleteHistos()
   delete hWType0_Multi;
   delete hWType1_Multi;
   delete hWType23_Multi;
-  delete hEtype_1;
+  delete hEtype_1; //
   delete hEtype_23;
   delete hWtype_1;
   delete hWtype_23;
+
   for(Int_t i = 0 ; i < 12 ;i++){
     delete hERad[i];
     delete hWRad[i];
@@ -138,17 +139,17 @@ void Run::DeleteHistos()
   delete hWestType23XRot;
   delete hWestType23YRot;
   delete hETimeVsE;
-  delete hETimeVsEP;
-  delete hETimeVsES;
+//  delete hETimeVsEP;
+//  delete hETimeVsES;
   delete hWTimeVsE;
-  delete hWTimeVsEP;
-  delete hWTimeVsES;
+//  delete hWTimeVsEP;
+//  delete hWTimeVsES;
 //  delete htdcE;
 //  delete htdcW;
   delete hEAnode23;
   delete hWAnode23;
-  delete hEType1_2d;
-  delete hWType1_2d;
+//  delete hEType1_2d;
+//  delete hWType1_2d;
   delete hEType1_Primary;
   delete hEType1_Secondary;
   delete hWType1_Primary;
@@ -159,18 +160,24 @@ void Run::DeleteHistos()
   delete hGammaCountsg;
   delete hETDC_cor;
   delete hETDC_cor_passed;
+  delete hWTDC_cor;
+  delete hWTDC_cor_passed;
   delete hEvWTDC;
   delete hEvWTDC_cor;
   delete hEAnode;
-  delete hECathS;
+//  delete hECathS;
   delete hWAnode;
-  delete hWCathS;
+//  delete hWCathS;
   delete c1;
   delete c2;
   delete hEKurie;
   delete hWKurie;
   delete xr; 
-  delete hmr1;
+//  delete hmr1;
+//  delete hClockW;
+//  delete hClockE;
+//  delete hCountTimeRecord;
+
 }
 
 Bool_t Run::OpenRun(Int_t n)
@@ -186,6 +193,7 @@ Bool_t Run::OpenRun(Int_t n)
   AnalysisDirExist = kFALSE;
   if(!(f1->IsOpen())){
 	cout << " Failed to open file "<<endl;
+//	delete f1; delete fHisto;
 	return kFALSE;
   }
   // Get the tree..
@@ -318,8 +326,11 @@ Int_t Run::Initialize_hist(Int_t n,Int_t nex,Int_t nwx)
  CreateTH1F(hEMWPC   ,"hEMWPC","MWPC cut ;Rate s^{-1} ; Energy (keV)",EBINS,0,ESCALE,nEast);
  CreateTH1F(hWMWPC   ,"hWMWPC","MWPC cut ;Rate s^{-1} ; Energy (keV)",EBINS,0,ESCALE,nWest);
  
-  CreateTH2F(hETimeVsE,"hETimeVsE","East Timing vs. Energy",100,0.,1000.,100,0.,200.,nEast);
-  CreateTH2F(hWTimeVsE,"hWTimeVsE","West Timing vs. Energy",100,0.,1000.,100,0.,200.,nWest);
+//  CreateTH2F(hETimeVsE,"hETimeVsE","East Timing vs. Energy",100,0.,1000.,100,0.,200.,nEast);
+//  CreateTH2F(hWTimeVsE,"hWTimeVsE","West Timing vs. Energy",100,0.,1000.,100,0.,200.,nWest);
+
+  CreateTH2F(hETimeVsE,"hETimeVsE","East Timing vs. Energy",100,0.,400.,100,0.,2000.,nEast);
+  CreateTH2F(hWTimeVsE,"hWTimeVsE","West Timing vs. Energy",100,0.,400.,100,0.,2000.,nWest);
 
  CreateTH1F(hESigNos ,"hESigNos","East Signal to Noise ; S / N ; Energy (keV)",EBINS,0,ESCALE,nEast);
  CreateTH1F(hWSigNos ,"hWSigNos","West Signal to Noise ; S / N ; Energy (keV)",EBINS,0,ESCALE,nWest);
@@ -336,16 +347,16 @@ Int_t Run::Initialize_hist(Int_t n,Int_t nex,Int_t nwx)
  CreateTH2F(hEvWTDC,"hEvWTDC","East vs. West TDC BkhfGood; East (ns) ; West (ns)",200,0,200,200,0,200,-2);
 
  CreateTH1F(hEAnode ,"hEAnode","East Anode Spectrum",100,0,20,nEast);
- CreateTH1F(hECathS ,"hECathS","East Cathode Sum Spectrum",5000,-1000,4000,nEast);
+// CreateTH1F(hECathS ,"hECathS","East Cathode Sum Spectrum",5000,-1000,4000,nEast);
  CreateTH1F(hWAnode ,"hWAnode","West Anode Spectrum",100,0,20,nWest);
- CreateTH1F(hWCathS ,"hWCathS","West Cathode Sum Spectrum",5000,-1000,4000,nWest);
+// CreateTH1F(hWCathS ,"hWCathS","West Cathode Sum Spectrum",5000,-1000,4000,nWest);
 		     
  CreateTH2F(hE23Anode2d,"hE23Anode2d","East Type 23 E vs. W Anode; East Anode ; West Anode",100,0,3000,100,0,3000,nEast);
  CreateTH2F(hW23Anode2d,"hW23Anode2d","West Type 23 E vs. W Anode; East Anode ; West Anode",100,0,3000,100,0,3000,nWest);
   
   // Type 1 backscatter positions and rotations
   //------------------------------------------------------------------------------------------------------------------
-  CreateTH1F(hTDCDiff ,"hTDCDiff","#Delta TDC ; TDCE - TDCW ; Counts",1000,-200,200,-2);
+  CreateTH1F(hTDCDiff ,"hTDCDiff","#Delta TDC ; TDCE - TDCW ; Counts",2000,-200,800,-2);
   CreateTH2F(hRote,"hRote","East Type 1 Backscattering Rotation ; X_{east} - X_{west} (mm) ; Y_{east} - Y_{west} (mm)",150,-75,75,150,-75,75,nEast);
   CreateTH2F(hRotw,"hRotw","West Type 1 Backscattering Rotation ; X_{east} - X_{west} (mm) ; Y_{east} - Y_{west} (mm)",150,-75,75,150,-75,75,nWest);
   CreateTH2F(hRoteI,"hRoteI","East Type 1 Backscattering Rotation ; X_{east} - X_{west} (mm) ; Y_{east} - Y_{west} (mm)",150,-75,75,150,-75,75,nEast);
@@ -409,6 +420,8 @@ Int_t Run::Initialize_hist(Int_t n,Int_t nex,Int_t nwx)
  CreateTH1F(hEWRef1 ,"hEWRef1","Reference ; Channel #;Cts",EBINS,0,ESCALE,-2);
  CreateTH1F(hEWRef2 ,"hEWRef2","Reference ; Channel #;Cts",EBINS,0,ESCALE,-2);
   
+ CreateTH1F(hCountTimeRecord ,"hCountTimeRecord","Count Times ; Counter; Value",9,0,8,-2);
+
  CreateTH1F(hETDC_cor ,"hETDC_cor","Corrupt TDC Energy; Channel #;Cts",EBINS,0,ESCALE,nEast);
  CreateTH1F(hWTDC_cor ,"hWTDC_cor","West Corrupt TDC Enegry; Channel #;Cts",EBINS,0,ESCALE,nWest);
  CreateTH1F(hETDC_cor_passed,"hETDC_cor_passed","Corrupt TDC Energy; Channel #;Cts",EBINS,0,ESCALE,nEast); 
@@ -440,6 +453,8 @@ Int_t Run::Initialize_hist(Int_t n,Int_t nex,Int_t nwx)
   }
   
   CreateTH1F(hmr1,"hmr1","UCN Monitor 2 Rate ; Time ; Rate",1000,0,4000,-2);
+  CreateTH1F(hClockW,"hClockW","Clock West ; Beta Count ; Beta Time",500001,0,500000,-2);
+  CreateTH1F(hClockE,"hClockE","Clock East ; Beta Count ; Beta Time",500001,0,500000,-2);
 
   return 0;
 }
@@ -449,6 +464,64 @@ void Run::ScaleTDC()
   TDCE *= fEast_TDC_Scale;
   TDCW *= fWest_TDC_Scale;
 };
+
+Int_t Run::Count_Betas(){
+  if(Side==0 && PID==1) BetasEast++;
+  if(Side==1 && PID==1) BetasWest++;
+  return -1;
+}
+
+Int_t Run::Count_Time_All()
+{
+  if(Side == 0 && CountTimeEAll==0){
+    CountTimeEFirst=TDCE-3000;
+    CountTimeEAll++;
+  }
+  else if(Side==0) {
+    CountTimeEAll=TDCE-3000;
+  }
+
+  if(Side == 1 && CountTimeWBeta==0){
+    CountTimeWFirst=TDCW-3000;
+    CountTimeWAll++;
+  }
+  else if(Side==1) {
+    CountTimeWAll=TDCW-3000;
+  }
+
+  hCountTimeRecord->SetBinContent(1,CountTimeEFirst);
+  hCountTimeRecord->SetBinContent(2,CountTimeEAll);
+  hCountTimeRecord->SetBinContent(5,CountTimeWFirst);
+  hCountTimeRecord->SetBinContent(6,CountTimeWAll);
+
+  return -1;
+}
+
+Int_t Run::Count_Time_Beta()
+{
+  if(Side == 0 && CountTimeEBeta==0){
+    CountTimeEFirstBeta=TDCE-3000;
+    CountTimeEBeta++;
+  }
+  else if(Side==0) {
+    CountTimeEBeta=TDCE-3000;
+  }
+
+  if(Side == 1 && CountTimeWBeta==0){
+    CountTimeWFirstBeta=TDCW-3000;
+    CountTimeWBeta++;
+  }
+  else if(Side==1) {
+    CountTimeWBeta=TDCW-3000;
+  }
+
+  hCountTimeRecord->SetBinContent(3,CountTimeEFirstBeta);
+  hCountTimeRecord->SetBinContent(4,CountTimeEBeta);
+  hCountTimeRecord->SetBinContent(7,CountTimeWFirstBeta);
+  hCountTimeRecord->SetBinContent(8,CountTimeWBeta);
+
+  return -1;
+}
 
 Int_t Run::Count_Gammas()
 {
@@ -752,7 +825,7 @@ Int_t Run::Book_Raw(Int_t entry)
   Float_t Wsum = Etrue;  // will use Evis 
   //----------------------------------------------------------------------------------------
   if(PID != 2){  // Require DeltaT > 30 to remove after pulsing and PID != 2 
-                                    // DeltaT cut removed for 2010 analysis
+    Count_Time_All();                  // DeltaT cut removed for 2010 analysis
     if( Sis00 == 1 && East_Rad < RAD){ // removes the muons....
       hENoMWPC->Fill(Esum,1.);
       if(PID == 0 )hEMWPC->Fill(Esum,1.);
@@ -767,6 +840,17 @@ Int_t Run::Book_Raw(Int_t entry)
   if((East_Rad > RAD && West_Rad > RAD ) )return 0;
   passed2++;
   //--------------------------------------------------------------------------------------
+
+  if(PID==1){
+    Count_Time_Beta();
+    Count_Betas();
+    Int_t i = BetasWest;
+    Int_t j = BetasEast;
+    hClockW->SetBinContent(i,CountTimeWBeta);
+    hClockE->SetBinContent(j,CountTimeEBeta);
+    WestClock[i]=CountTimeWBeta;
+    EastClock[j]=CountTimeEBeta;
+  }
  // SetMultiplicity();
   // If a valid data stream event determine the event type.
   if((PID == 1) && Type == 0 && Side == 0 && East_Rad < RAD){
@@ -884,10 +968,6 @@ Int_t Run::Handle_Backscatters(Int_t entry)
   // Define the east and west radii  
   Double_t posrad  = sqrt(EastX.center*EastX.center + EastY.center*EastY.center);
   Double_t posradw = sqrt(WestX.center*WestX.center + WestY.center*WestY.center);
-
-//if(Side==0) std::cout << "East: Radius " << posrad << ", x/y hit " << EastX.center << "/" << EastY.center << std::endl;
-//if(Side==1) std::cout << "West: Radius " << posradw << ", x/y hit " << WestX.center << "/" << WestY.center << std::endl;
-
   // Define the difference in the east and west MWPC events.
   Double_t posdiff = TMath::Abs(sqrt(TMath::Power((WestX.center-EastX.center),2)
       + TMath::Power((WestY.center-EastY.center),2)));
@@ -900,9 +980,7 @@ Int_t Run::Handle_Backscatters(Int_t entry)
   Double_t NTDCW = TDCW - w_tdc_cut + TDC0;
 
   NTDCE-=3000; NTDCW-=3000;
- 
-// cout << "TEST THINGS FOREVER AND EVER" << endl;
- 
+
   // Fill timing differenc histogram
   hTDCDiff->Fill(NTDCE-NTDCW,1);
   // Both MWPC above threshold, backscatter event
@@ -940,10 +1018,13 @@ Int_t Run::Handle_Backscatters(Int_t entry)
     heqE->Fill(Etrue);
     heqF->Fill(Etrue);
     hEType1_Multi->Fill((Float_t)(EastX.mult + EastY.mult),1.);
+    hEType1_Primary->Fill((Float_t)(EastX.mult + EastY.mult),1.);
     // fill the west position of east triggering events
     hRote->Fill(WestX.center,WestY.center,1);
+    hEType1_Secondary->Fill((Float_t)(WestX.mult + WestY.mult),1.);
     // look at the energy vs. normalized time
-    hETimeVsE->Fill(Etrue,NTDCE,1);
+    //hETimeVsE->Fill(Etrue,NTDCE,1);
+    hETimeVsE->Fill(NTDCE,Etrue,1);
     hRoteI->Fill(EastX.center,EastY.center,1);
     //-------------------------------------------------------------
     hEastType1XRot->Fill(EastX.center,EastY.center,EastX.center-WestX.center);
@@ -960,6 +1041,8 @@ Int_t Run::Handle_Backscatters(Int_t entry)
       }
     }
     
+    hWType1_Primary->Fill((Float_t)(WestX.mult + WestY.mult),1.);
+    hWType1_Secondary->Fill((Float_t)(EastX.mult + EastY.mult),1.);
     hWtype_1->Fill(Etrue);
     hRotw->Fill(EastX.center,EastY.center,1);
     hRotwI->Fill(WestX.center,WestY.center,1);
@@ -968,7 +1051,7 @@ Int_t Run::Handle_Backscatters(Int_t entry)
     hWestType1YRot->Fill(WestX.center,WestY.center,EastY.center-WestY.center);
     hPosDiffShifted->Fill(xErot-WestX.center,yErot-WestY.center);
     hPosDiffUnShifted->Fill(EastX.center-WestX.center,EastY.center-WestY.center);
-    hWTimeVsE->Fill(Etrue,NTDCW,1);
+    hWTimeVsE->Fill(NTDCW,Etrue,1);
     // Fill Type 1 Analysis choices A,B,C,E,F
     hwq->Fill(Etrue);
     hwqC->Fill(Etrue);
@@ -1000,7 +1083,6 @@ Int_t Run::Handle_Backscatters(Int_t entry)
 	// Fill Trigger side analysis
 	heq->Fill(Etrue,1);	
 	heqG->Fill(Etrue,1);
-        //hwqG->Fill(Etrue,rtime_w/rtime_e);   //  PURELY FOR TESTING, NONPHYSICAL
         hEAnode23->Fill(EastMWPCEnergy,1);
 	hE23Anode2d->Fill(AnodeE,AnodeW,1);
         // Fill hard cut analysis
@@ -1248,7 +1330,7 @@ Int_t Run::SaveHistograms(Bool_t SAVE)
 
 }
 //---------------------------------------------------------------------------------------
-Int_t Run::GetHistograms(Int_t dunce)
+Int_t Run::GetHistograms(Int_t reloadType)
 {
   fHisto->cd(Form("%s_Analysis_%d_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated));
   xr = new TRandom3();
@@ -1264,10 +1346,10 @@ Int_t Run::GetHistograms(Int_t dunce)
   hWMWPC      = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWMWPC_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hETimeVsE   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hETimeVsE_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWTimeVsE   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWTimeVsE_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  hETimeVsEP   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hETimeVsEP_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  hWTimeVsEP   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWTimeVsEP_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  hETimeVsES   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hETimeVsES_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  hWTimeVsES   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWTimeVsES_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hETimeVsEP   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hETimeVsEP_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hWTimeVsEP   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWTimeVsEP_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hETimeVsES   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hETimeVsES_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hWTimeVsES   = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWTimeVsES_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWAnode23   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWAnode23_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hEAnode23   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEAnode23_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hESigNos    = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hESigNos_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
@@ -1291,8 +1373,8 @@ Int_t Run::GetHistograms(Int_t dunce)
   hPosDiffUnShifted = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hPosDiffUnShifted_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hEAnode     = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEAnode_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWAnode     = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWAnode_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  hWCathS     = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWCathS_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  hECathS     = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hECathS_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hWCathS     = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWCathS_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hECathS     = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hECathS_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hEType1_Primary   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEType1_Primary_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hEType1_Secondary = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEType1_Secondary_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWType1_Primary   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWType1_Primary_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
@@ -1319,8 +1401,8 @@ Int_t Run::GetHistograms(Int_t dunce)
   heqC        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqC_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
 //  hwqD        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqD_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
 //  heqD        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqD_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  hwqE        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqE_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  heqE        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqE_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hwqE        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqE_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  heqE        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqE_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hwqF        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqF_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   heqF        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqF_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hwqG        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqG_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
@@ -1335,7 +1417,7 @@ Int_t Run::GetHistograms(Int_t dunce)
   hWTDC_cor   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWTDC_cor_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hETDC_cor_passed = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hETDC_cor_passed_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWTDC_cor_passed = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWTDC_cor_passed_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  htw         = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/htw_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  htw         = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/htw_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWtype_1    = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWtype_1_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hWtype_23   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWtype_23_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
 /*  he1         = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/he1_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
@@ -1343,11 +1425,11 @@ Int_t Run::GetHistograms(Int_t dunce)
   he3         = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/he3_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   he4         = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/he4_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
 */
-  hte         = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hte_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hte         = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hte_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hEtype_1    = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEtype_1_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hEtype_23   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEtype_23_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  hEType1_2d  = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEType1_2d_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-  hWType1_2d  = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWType1_2d_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hEType1_2d  = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEType1_2d_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hWType1_2d  = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWType1_2d_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
 
   for(Int_t i = 0 ; i < 12 ; i++){
     hERad[i]  = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hERad[%d]_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,i,runnum));
@@ -1357,8 +1439,11 @@ Int_t Run::GetHistograms(Int_t dunce)
         hWHC[i] = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWHC[%d]_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,i,runnum));
     }
   }
+//  hmr1  = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hmr1_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  //hClockW  = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hClockW_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  //hClockE  = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hClockE_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
 
-  hmr1   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hmr1_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+//  hCountTimeRecord  = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hCountTimeRecord_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
 
   hEERef  = new TH1F("hEERef","Reference ; Channel ;Cts"  ,EBINS,0,ESCALE);
   hEERef1 = new TH1F("hEERef1","Reference ; Channel ;Cts",EBINS,0,ESCALE);
@@ -1378,17 +1463,17 @@ void Run::Assign_to_Hist_List()
 //  HEastAn->Add(heqB);
   HEastAn->Add(heqC);
 //  HEastAn->Add(heqD);
-  HEastAn->Add(heqE);
+//  HEastAn->Add(heqE);
   HEastAn->Add(heqF);
   HEastAn->Add(heqG);
 //  HEastAn->Add(heqH);
 //  HEastAn->Add(heqI);
   HEastAn->Add(hpe);
-  HEastAn->Add(hte);
+//  HEastAn->Add(hte);
 /*  HEastAn->Add(he4);
   HEastAn->Add(he1);
   HEastAn->Add(he2);
-  HEastAn->Add(he3);             */
+  HEastAn->Add(he3);  */
   HEastAn->Add(hEAnode23);
   HEastAn->Add(hEtype_1);
   HEastAn->Add(hETDC_cor_passed);
@@ -1398,8 +1483,8 @@ void Run::Assign_to_Hist_List()
   HEastAn->Add(hETDC_cor);
   HEastAn->Add(hApose);
   HEastAn->Add(hETimeVsE);
-  HEastAn->Add(hETimeVsEP);
-  HEastAn->Add(hETimeVsES);
+//  HEastAn->Add(hETimeVsEP);
+//  HEastAn->Add(hETimeVsES);
   HEastAn->Add(hEMWPC);
   HEastAn->Add(hENoMWPC);
   HEastAn->Add(hRote);
@@ -1411,17 +1496,17 @@ void Run::Assign_to_Hist_List()
 //  HWestAn->Add(hwqB);
   HWestAn->Add(hwqC);
 //  HWestAn->Add(hwqD);
-  HWestAn->Add(hwqE);
+//  HWestAn->Add(hwqE);
   HWestAn->Add(hwqF);
   HWestAn->Add(hwqG);
 //  HWestAn->Add(hwqH);
 //  HWestAn->Add(hwqI);
   HWestAn->Add(hpw);
-  HWestAn->Add(htw);
+//  HWestAn->Add(htw);
 /*  HWestAn->Add(hw4);
   HWestAn->Add(hw1);
   HWestAn->Add(hw2);
-  HWestAn->Add(hw3);        */
+  HWestAn->Add(hw3);   */
   HWestAn->Add(hWAnode23);
   HWestAn->Add(hWtype_1);
   HWestAn->Add(hWTDC_cor_passed);
@@ -1431,8 +1516,8 @@ void Run::Assign_to_Hist_List()
   HWestAn->Add(hWTDC_cor);
   HWestAn->Add(hAposw);
   HWestAn->Add(hWTimeVsE);
-  HWestAn->Add(hWTimeVsEP);
-  HWestAn->Add(hWTimeVsES);
+//  HWestAn->Add(hWTimeVsEP);
+//  HWestAn->Add(hWTimeVsES);
   HWestAn->Add(hWMWPC);
   HWestAn->Add(hWNoMWPC);
   HWestAn->Add(hRotw);
@@ -1637,7 +1722,7 @@ void Run::Diagnosis_Run()
   cout << "  Type 1 \t \t"<< hEtype_1->Integral()  << "\t"<< hWtype_1->Integral() << endl;
   cout << "  Type 23\t \t"<< hEtype_23->Integral() << "\t"<< hWtype_23->Integral() << endl;
   cout << "  -----------------------------------------------------------" << endl;
-  cout << "  TDC counts East   :  " << hte->Integral() << "\t West : " << htw->Integral() << endl;
+//  cout << "  TDC counts East   :  " << hte->Integral() << "\t West : " << htw->Integral() << endl;
   cout << "  Anode counts East :  " << hEAnode->Integral() << "\t West : " << hWAnode->Integral() << endl;
   cout << "  -----------------------------------------------------------" << endl;
   cout << "  Gamma East : " << GammasEast << " Gamma West : " << GammasWest << endl;
@@ -1658,9 +1743,7 @@ void Run::ScaleList(TObjArray *hL,Double_t time)
     h = (TH1*)hLiter->Next();
     if(h) h->Scale(1./time);
   }while(h!=0);
-
   delete h; delete hLiter;
-
 }
 
 #endif
