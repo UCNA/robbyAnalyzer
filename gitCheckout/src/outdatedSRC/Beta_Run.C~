@@ -1,0 +1,893 @@
+#ifndef __beta_run_c__
+#define __beta_run_c__
+
+#include "Beta_Run.h"
+
+using namespace std;
+ 
+Double_t Int_Asym(Double_t x1, Double_t x2);
+Double_t Asym_Err(Double_t x1,Double_t x2);
+Double_t fermi(Double_t x);
+Double_t Rate_Error(TH1F *h1, TH1F *h2, Float_t t1, Float_t t2);
+Double_t Rate_Error(TH1F *h1, TH1F *h2, TH1F *h3,TH1F *h4,Float_t t1, Float_t t2);
+Double_t GetIntError(TH1F *h1, TH1F *h2, TH1F *h3,TH1F *h4,Float_t t1, Float_t t2);
+
+//ClassImp(Beta_Run);
+
+Beta_Run::Beta_Run(Int_t n,Int_t m,TSQLServer *sql):Run(n,m,sql)
+{
+  // See the Bck_Run constructor for the relavent comments.
+  runnum  = n;
+  runtype = m;
+  const char* filepath = getenv("UCNAOUTPUTDIR"); 
+  
+  f1 = new TFile(Form("%s/hists/spec_%d.root",filepath,n),"UPDATE");
+  
+  if(!(f1->IsOpen()))
+	cout << " Failed to open file "<<endl;
+
+  t1 = (TTree*)f1->Get("phys");
+  AnalysisDirExist = kFALSE;
+
+  if(!(f1->cd(Form("Analysis_%d_%d",(Int_t)RAD,rotated)))){
+    f1->mkdir(Form("Analysis_%d_%d",(Int_t)RAD,rotated));
+  } else {
+    f1->cd(Form("Analysis_%d_%d",(Int_t)RAD,rotated));
+    AnalysisDirExist = kTRUE;
+  }
+
+  
+  
+ /* gROOT->cd();
+  dHists = new TDirectory("dHists",Form("Histograms_%d",n));
+  dHists->cd();
+  dHists->Append(t1);*/
+    
+  SetBranches();
+  if(GetBackGround(sql) == 0) cout << "failure" << endl;
+  Find_TDC_Cut(n,sql);
+  Load_Rotation_Matrix(GetGeo()); // Rotate the detector corrdinates
+  Load_Background(runnum,runtype,GetGeo());
+}
+
+Beta_Run::~Beta_Run()
+{
+
+}
+
+Int_t Beta_Run::Draw_2d(Int_t nr,Int_t n)
+{
+  
+  hpw = new TH2F(Form("btr[%i]->hpw",n),"West Position;X;Y",150,-75,75,150,-75,75);
+  hpe = new TH2F(Form("btr[%i]->hpe",n),"East Position;X;Y",150,-75,75,150,-75,75);
+  
+  return 0;
+}
+
+Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep)
+{
+  //-----------------------------------------------------------------------------------+
+  // Loop through events in the tree to fill histograms for analysis.  Ideally         |
+  // this happens only on the first pass and the histograms are saved to the Analysis  |
+  // directory created in the ROOT file.  Later analysis reads in the histograms       |
+  // for analysis which greatly speeds things up.                                      |
+  //-----------------------------------------------------------------------------------+
+
+  Float_t East_Time_Cnt=0.;
+  Float_t West_Time_Cnt=0.;
+
+  Float_t OldTE = 0.;
+  Float_t OldTW = 0.;  
+
+  for(Int_t i = 0 ; i < 100 ; i ++){
+    // fill the 2/3 separation array for use in the monte carlo type identification routine
+    seppar[i] = sep[i];
+  }
+  
+  if(remake == 1 || !AnalysisDirExist){
+    Initialize_hist(0,1,1);
+    for(Int_t i = 0 ; i < t1->GetEntries() ; i++){ 
+      t1->GetEntry(i);  // Get Enetry from the Tree;
+      ScaleTDC();
+      // Stupid live time counter.  Live times are up to date in the mysql database so 
+      // these are being used to up date the clocks.
+
+      if(TofE < OldTE)East_Time_Cnt++;
+      OldTE = TofE;
+      
+      if(TofW < OldTW)West_Time_Cnt++;
+      OldTW = TofW;
+    
+      //-------------------------------
+      if(Check_Vetos()){
+      // Passed Muon Veto
+	Book_Raw(i);
+      } else { 
+	Book_Muons();
+      }
+    }
+
+    hGammaCounts->SetBinContent(1,GammasEast);
+    hGammaCounts->SetBinContent(2,GammasWest);
+    hGammaCountsg->SetBinContent(1,GammasEastg);
+    hGammaCountsg->SetBinContent(2,GammasWestg);
+    
+    if(GetGeo() == 1){
+      // if geometry b correct the live times based on gamma counts
+      rtime_e = rtime_e*(hGammaCountsg->GetBinContent(1))/(hGammaCounts->GetBinContent(1)); 
+      rtime_w = rtime_w*(hGammaCountsg->GetBinContent(2))/(hGammaCounts->GetBinContent(2)); 
+    }
+       
+    SaveHistograms();
+  } else if( remake == 0 && AnalysisDirExist){
+    GetHistograms();
+    if(GetRunNumber() == 9983){
+      cout << "East live time uncorrected " << rtime_e << endl;
+      cout << "West live time uncorrected " << rtime_w << endl;
+    }
+    if(GetGeo() == 1){
+      // if geometry b correct the live times based on gamma counts
+      rtime_e = rtime_e*(hGammaCountsg->GetBinContent(1))/(hGammaCounts->GetBinContent(1)); 
+      rtime_w = rtime_w*(hGammaCountsg->GetBinContent(2))/(hGammaCounts->GetBinContent(2)); 
+    }
+    if(GetRunNumber() == 9983){
+      cout << "East live time corrected " << rtime_e << endl;
+      cout << "West live time corrected " << rtime_w << endl;
+    }
+    
+  }
+  
+  return 0;
+
+}
+
+Int_t Beta_Run::Draw_Hists(Int_t n)
+{
+  c1->cd(1);
+  hpe->Draw("colz");
+  
+  c1->cd(2);
+  hpw->Draw("colz");
+
+  c1->cd(3);
+  heq->Draw();
+    
+  c2->cd(3);
+  gPad->SetLogy();
+  hte->Draw();
+    
+  c2->cd(1);
+  hEtype_1->Draw();
+
+  c1->cd(4);
+  hwq->Draw();
+
+  c2->cd(4);
+  gPad->SetLogy();
+  htw->Draw();
+   
+  c2->cd(2);
+  hWtype_1->Draw();
+  
+  c2->cd(5);
+  hRote->Draw("colz");
+  
+  c2->cd(6);
+  hRotw->Draw("colz");
+  
+  delete c1;
+  delete c2;
+  
+  return 0;
+}
+
+Int_t Beta_Run::SubBck(Bck_Run *br)
+{
+  
+  //Subtract backgrounds from beta data, determine signal to noise ratios and 
+  // do some other shit.
+
+   cout << "Subtracting background for Run " <<  runnum << " using run " << br->GetRunNumber() << endl;
+   cout << "Background run time " << br->rtime_e << "  " << br->rtime_w << endl;
+   cout << "West rates : " <<  hwq->Integral() <<"\t"<<  br->hwq->Integral() << endl;
+   cout << "East rates : " <<  heq->Integral() <<"\t"<<  br->heq->Integral() << endl;
+   btime_e = br->rtime_e;
+   btime_w = br->rtime_w;
+   
+   TObjArrayIter *EastIter  = new TObjArrayIter(HEastAn);
+   TObjArrayIter *EastIterb = new TObjArrayIter(br->HEastAn);
+
+   TObjArrayIter *WestIter  = new TObjArrayIter(HWestAn);
+   TObjArrayIter *WestIterb = new TObjArrayIter(br->HWestAn);
+   TH1 *hS,*hB;
+  
+   for(Int_t ii = 0 ; ii < HEastAn->GetEntriesFast() ; ii++){
+     hS = (TH1*)EastIter->Next();
+     hB = (TH1*)EastIterb->Next();
+    /* cout << "Signal " << hS->GetName() << "\t bin : " << hS->GetNbinsX() << endl;
+     cout << "Background " << hB->GetName() << "\t bin : " << hB->GetNbinsX() << endl;*/
+     hS->Add(hB,-1);
+   }
+   for(Int_t ii = 0 ; ii < HWestAn->GetEntriesFast() ; ii++){
+     hS = (TH1*)WestIter->Next();
+     hB = (TH1*)WestIterb->Next();
+     
+     hS->Add(hB,-1);
+   }
+//   
+//   for(Int_t i = 1 ; i <= heq->GetNbinsX() ; i++){    
+// 		       
+//     hEMWPC->SetBinContent(i,hEMWPC->GetBinContent(i) - br->hEMWPC->GetBinContent(i));
+// 			  
+//     hENoMWPC->SetBinContent(i,hENoMWPC->GetBinContent(i) - br->hENoMWPC->GetBinContent(i)
+// 			    - hEMWPC->GetBinContent(i));
+// 
+//     hwq ->SetBinContent(i, hwq->GetBinContent(i)  - br->hwq->GetBinContent(i));
+//     hwqB->SetBinContent(i, hwqB->GetBinContent(i) - br->hwqB->GetBinContent(i));
+//     hwqC->SetBinContent(i, hwqC->GetBinContent(i) - br->hwqC->GetBinContent(i));
+//     hwqD->SetBinContent(i, hwqD->GetBinContent(i) - br->hwqD->GetBinContent(i));
+//     hwqE->SetBinContent(i, hwqE->GetBinContent(i) - br->hwqE->GetBinContent(i));
+//     hwqF->SetBinContent(i, hwqF->GetBinContent(i) - br->hwqF->GetBinContent(i));
+//     hwqG->SetBinContent(i, hwqG->GetBinContent(i) - br->hwqG->GetBinContent(i));
+//     hwqH->SetBinContent(i, hwqH->GetBinContent(i) - br->hwqH->GetBinContent(i));
+//     hwqI->SetBinContent(i, hwqI->GetBinContent(i) - br->hwqI->GetBinContent(i));
+//      
+//     heq->SetBinContent(i,  heq->GetBinContent(i)  - br->heq->GetBinContent(i));
+//     heqB->SetBinContent(i, heqB->GetBinContent(i) - br->heqB->GetBinContent(i));
+//     heqC->SetBinContent(i, heqC->GetBinContent(i) - br->heqC->GetBinContent(i));
+//     heqD->SetBinContent(i, heqD->GetBinContent(i) - br->heqD->GetBinContent(i));
+//     heqE->SetBinContent(i, heqE->GetBinContent(i) - br->heqE->GetBinContent(i));
+//     heqF->SetBinContent(i, heqF->GetBinContent(i) - br->heqF->GetBinContent(i));
+//     heqG->SetBinContent(i, heqG->GetBinContent(i) - br->heqG->GetBinContent(i));
+//     heqH->SetBinContent(i, heqH->GetBinContent(i) - br->heqH->GetBinContent(i));
+//     heqI->SetBinContent(i, heqI->GetBinContent(i) - br->heqI->GetBinContent(i));
+//     
+//         
+//     hWMWPC->SetBinContent(i,
+// 			  hWMWPC->GetBinContent(i) 
+// 			  - br->hWMWPC->GetBinContent(i));
+// 			  
+//     hWNoMWPC->SetBinContent(i,hWNoMWPC->GetBinContent(i) 
+// 			    - br->hWNoMWPC->GetBinContent(i)
+// 			    - hWMWPC->GetBinContent(i));
+// 
+//     hEtype_1->SetBinContent(i, hEtype_1->GetBinContent(i)  
+// 			    - br->hEtype_1->GetBinContent(i));
+// 			    
+//     hEtype_23->SetBinContent(i,hEtype_23->GetBinContent(i) 
+// 			     - br->hEtype_23->GetBinContent(i));
+// 			     
+//     hWtype_1->SetBinContent(i, hWtype_1->GetBinContent(i)  
+// 			    - br->hWtype_1->GetBinContent(i));
+// 			    
+//     hWtype_23->SetBinContent(i,hWtype_23->GetBinContent(i) 
+// 			     - br->hWtype_23->GetBinContent(i));
+//   }
+
+//   for(Int_t i = 1 ; i < hEAnode23->GetNbinsX() ; i ++){
+// 	hEAnode23->SetBinContent(i, hEAnode23->GetBinContent(i) - br->hEAnode23->GetBinContent(i));
+// 	hWAnode23->SetBinContent(i, hWAnode23->GetBinContent(i) - br->hWAnode23->GetBinContent(i));
+//   }
+
+//   for(Int_t i = 1 ; i < hpe->GetNbinsX() ; i++){
+// 	for(Int_t j = 1 ; j < hpe->GetNbinsY(); j++){
+//             hpe->SetBinContent(i,j,(hpe->GetBinContent(i,j) - br->hpe->GetBinContent(i,j))*rtime_e);
+// 	       hpw->SetBinContent(i,j,(hpw->GetBinContent(i,j) - br->hpw->GetBinContent(i,j))*rtime_w);	
+//             hRoteI->SetBinContent(i,j,(hRoteI->GetBinContent(i,j) - br->hRoteI->GetBinContent(i,j))*rtime_e);
+//             hRotwI->SetBinContent(i,j,(hRotwI->GetBinContent(i,j) - br->hRotwI->GetBinContent(i,j))*rtime_w);
+//             hRote->SetBinContent(i,j,(hRote->GetBinContent(i,j) - br->hRote->GetBinContent(i,j))*rtime_e);
+//             hRotw->SetBinContent(i,j,(hRotw->GetBinContent(i,j) - br->hRotw->GetBinContent(i,j))*rtime_w);
+// 
+//             hRoteI23->SetBinContent(i,j,(hRoteI23->GetBinContent(i,j) - br->hRoteI23->GetBinContent(i,j))*rtime_e);
+//             hRotwI23->SetBinContent(i,j,(hRotwI23->GetBinContent(i,j) - br->hRotwI23->GetBinContent(i,j))*rtime_w);
+//             hRote23->SetBinContent(i,j,(hRote23->GetBinContent(i,j) - br->hRote23->GetBinContent(i,j))*rtime_e);
+//             hRotw23->SetBinContent(i,j,(hRotw23->GetBinContent(i,j) - br->hRotw23->GetBinContent(i,j))*rtime_w);
+// 
+//         }
+//   }
+  
+  BkgRtE[0] = br->heq->Integral(nlow,nhigh);
+  BkgRtE[1] = br->heqB->Integral(nlow,nhigh);
+  BkgRtE[2] = br->heqC->Integral(nlow,nhigh);
+  BkgRtE[3] = br->heqD->Integral(nlow,nhigh);
+  BkgRtE[4] = br->heqE->Integral(nlow,nhigh);
+  BkgRtE[5] = br->heqF->Integral(nlow,nhigh);
+  BkgRtE[6] = br->heqG->Integral(nlow,nhigh);
+  BkgRtE[7] = br->heqH->Integral(nlow,nhigh);
+  BkgRtE[8] = br->heqI->Integral(nlow,nhigh);
+  
+  BkgTe = br->rtime_e;
+  BkgTw = br->rtime_w;
+  
+  BkgRtW[0] = br->hwq->Integral(nlow,nhigh);
+  BkgRtW[1] = br->hwqB->Integral(nlow,nhigh);
+  BkgRtW[2] = br->hwqC->Integral(nlow,nhigh);
+  BkgRtW[3] = br->hwqD->Integral(nlow,nhigh);
+  BkgRtW[4] = br->hwqE->Integral(nlow,nhigh);
+  BkgRtW[5] = br->hwqF->Integral(nlow,nhigh);
+  BkgRtW[6] = br->hwqG->Integral(nlow,nhigh);
+  BkgRtW[7] = br->hwqH->Integral(nlow,nhigh);
+  BkgRtW[8] = br->hwqI->Integral(nlow,nhigh);
+  
+  Rate_Error(heq   ,br->heq   ,rtime_e,br->rtime_e);
+  Rate_Error(heqB  ,br->heqB  ,rtime_e,br->rtime_e);
+  Rate_Error(heqC  ,br->heqC  ,rtime_e,br->rtime_e);
+  Rate_Error(heqD  ,br->heqD  ,rtime_e,br->rtime_e);
+  Rate_Error(heqE  ,br->heqE  ,rtime_e,br->rtime_e);
+  Rate_Error(heqF  ,br->heqF  ,rtime_e,br->rtime_e);
+  Rate_Error(heqG  ,br->heqG  ,rtime_e,br->rtime_e);
+  Rate_Error(heqH  ,br->heqH  ,rtime_e,br->rtime_e);
+  Rate_Error(heqI  ,br->heqI  ,rtime_e,br->rtime_e);
+   
+  Rate_Error(hEAnode23,br->hEAnode23,rtime_e,br->rtime_e);
+  Rate_Error(hWAnode23,br->hWAnode23,rtime_w,br->rtime_e);
+  
+  Rate_Error(hEMWPC,br->hEMWPC,rtime_e,br->rtime_e);
+  
+  Rate_Error(hENoMWPC,br->hENoMWPC,hEMWPC,br->hEMWPC,rtime_e,br->rtime_e);
+
+  Rate_Error(hwq   ,br->hwq    ,rtime_w,br->rtime_w);
+  Rate_Error(hwqB  ,br->hwqB   ,rtime_w,br->rtime_w);
+  Rate_Error(hwqC  ,br->hwqC   ,rtime_w,br->rtime_w);
+  Rate_Error(hwqD  ,br->hwqD   ,rtime_w,br->rtime_w);
+  Rate_Error(hwqE  ,br->hwqE   ,rtime_w,br->rtime_w);
+  Rate_Error(hwqF  ,br->hwqF   ,rtime_w,br->rtime_w);
+  Rate_Error(hwqG  ,br->hwqG   ,rtime_w,br->rtime_w);
+  Rate_Error(hwqH  ,br->hwqH   ,rtime_w,br->rtime_w);
+  Rate_Error(hwqI  ,br->hwqI   ,rtime_w,br->rtime_w);
+   
+  Rate_Error(hWMWPC  ,br->hWMWPC ,rtime_w,br->rtime_w);
+  
+  Rate_Error(hWNoMWPC,br->hWNoMWPC,hWMWPC,br->hWMWPC,rtime_w,br->rtime_w);
+
+  Rate_Error(hEtype_1 ,br->hEtype_1 ,rtime_e,br->rtime_e);
+  Rate_Error(hEtype_23,br->hEtype_23,rtime_e,br->rtime_e);
+  Rate_Error(hWtype_1 ,br->hWtype_1 ,rtime_w,br->rtime_w);
+  Rate_Error(hWtype_23,br->hWtype_23,rtime_w,br->rtime_w);
+//   
+  TF1 *fMWPCL = new TF1("fMWPCL","[0]",100,1000);
+  if(hEMWPC->Integral(nlow,nhigh) !=0){
+    MWPC_RatioE   = hENoMWPC->Integral(nlow,nhigh) / hEMWPC->Integral(nlow,nhigh);
+    MWPC_RatioE_e = GetIntError(hENoMWPC,br->hENoMWPC,hEMWPC,br->hEMWPC,rtime_e,br->rtime_e);
+  
+    hENoMWPC->Fit("fMWPCL","QRME","goff");
+
+    MWPC_RatioE_fit   = (nhigh-nlow)*fMWPCL->GetParameter(0) / hEMWPC->Integral(nlow,nhigh);
+    MWPC_RatioE_fit_e = (nhigh-nlow)*fMWPCL->GetParError(0) / hEMWPC->Integral(nlow,nhigh);
+  }
+  if(hWMWPC->Integral(nlow,nhigh) != 0 ){
+    MWPC_RatioW   = hWNoMWPC->Integral(nlow,nhigh)/ hWMWPC->Integral(nlow,nhigh);
+    MWPC_RatioW_e = GetIntError(hWNoMWPC,br->hWNoMWPC,hWMWPC,br->hWMWPC,rtime_w,br->rtime_w);
+			      
+    hWNoMWPC->Fit("fMWPCL","QRME","goff");		      
+			      
+    MWPC_RatioW_fit   = (nhigh-nlow)*fMWPCL->GetParameter(0) / hWMWPC->Integral(nlow,nhigh);
+    MWPC_RatioW_fit_e = (nhigh-nlow)*fMWPCL->GetParError(0) / hWMWPC->Integral(nlow,nhigh);
+  }
+  for(int i = 1 ; i <= heq->GetNbinsX() ; i++){
+      hESigNos->SetBinContent(i,heq->GetBinContent(i));
+      hESigNos->SetBinError(i,heq->GetBinError(i));
+      hWSigNos->SetBinContent(i,hwq->GetBinContent(i));
+      hWSigNos->SetBinError(i,hwq->GetBinError(i));
+  }
+  
+//   hETimeVsE->Add(br->hETimeVsE,-1);
+//   hWTimeVsE->Add(br->hWTimeVsE,-1);
+//   
+  E_Sig_Nos = heq->Integral(nlow,nhigh)/br->heq->Integral(nlow,nhigh);
+  W_Sig_Nos = hwq->Integral(nlow,nhigh)/br->hwq->Integral(nlow,nhigh);
+  
+  hESigNos->Divide(br->heq);
+  hWSigNos->Divide(br->hwq);
+  
+  hAposw->Add(br->hAposw,-1);
+  hApose->Add(br->hApose,-1);
+  
+//   hETDC_cor->Add(br->hETDC_cor,-1);
+//   hWTDC_cor->Add(br->hWTDC_cor,-1);
+// 
+//   hETimeVsE->Add(br->hETimeVsE,-1);
+//   hWTimeVsE->Add(br->hWTimeVsE,-1);
+//   
+//   hEmuon->Add(br->hEmuon,-1);
+//   hWmuon->Add(br->hWmuon,-1);
+  
+  for(int i = 0 ; i < 12 ; i++){
+//     hERad[i]->Add(br->hERad[i],-1);
+//     hWRad[i]->Add(br->hWRad[i],-1);
+//     
+//     Rate_Error(hERad[i],br->hERad[i],rtime_e,br->rtime_e);
+//     Rate_Error(hWRad[i],br->hWRad[i],rtime_w,br->rtime_w);
+
+    erad[i]    = hERad[i]->Integral(nlow,nhigh);
+    wrad[i]    = hWRad[i]->Integral(nlow,nhigh);
+	  
+    erader[i]  = sqrt( erad[i]*rtime_e + 
+		       br->hERad[i]->Integral(nlow,nhigh)*br->rtime_e)/rtime_e;
+    wrader[i]  = sqrt( wrad[i]*rtime_w + 
+		       br->hWRad[i]->Integral(nlow,nhigh)*br->rtime_w)/rtime_w;
+  }
+  
+  emuon_rate = hEmuon->Integral();
+  wmuon_rate = hWmuon->Integral();
+  
+  bscat.etype_1_bck  = br->heqF->Integral(nlow,nhigh)*br->rtime_e;
+  bscat.etype_23_bck = br->heqG->Integral(nlow,nhigh)*br->rtime_e;
+  
+  bscat.wtype_1_bck  = br->hwqF->Integral(nlow,nhigh)*br->rtime_w;
+  bscat.wtype_23_bck = br->hwqG->Integral(nlow,nhigh)*br->rtime_w;
+  
+  bscat.w_all_bck    = br->hwq->Integral(nlow,nhigh)*br->rtime_w;
+  bscat.e_all_bck    = br->heq->Integral(nlow,nhigh)*br->rtime_e;
+  
+  delete WestIter;
+  delete WestIterb;
+  delete EastIter;
+  delete EastIterb;
+  
+  return 0;
+}
+
+Bool_t Beta_Run::Check_Vetos()
+{
+ 
+  return kTRUE;
+  
+  if(TaggedTopE + TaggedBackE + TaggedDriftE 
+     + TaggedBackW + TaggedDriftW != 0 ) return kFALSE;
+  
+  return kTRUE; 
+}
+
+Int_t Beta_Run::GetBackGround(TSQLServer *sql)
+{
+  // Open Connection to that analysis database
+  if(!(sql->IsConnected()))ReConnect(sql);
+  TSQLResult *res;
+  TSQLRow *row;
+  char buffer[300];
+ 
+  // Fetch the octet type of run from DB
+  sprintf(buffer,"select run_number,asym_oct from run where run_number = %d ",runnum);
+  res = (TSQLResult*)sql->Query(buffer);
+  if(res->GetRowCount() != 0){
+    while((row = (TSQLRow*)res->Next())){
+      //cout << row->GetField(1) << "\t" << strlen(row->GetField(1)) << "  " << octtype << endl;
+      sprintf(octtype,"%s",row->GetField(1));
+      delete row;
+    }
+  }
+  
+  delete res;
+  // Find the matching background run in the database
+  // cout << "at run " << runnum << "  " << octtype << endl;
+  if(!strncmp(octtype,"A2",2)) {
+    sprintf(buffer," select t1.run_number,t1.geometry,t1.asym_oct,t1.gate_valve " 
+	    " from run as t1, analysis as t2 where t1.run_number between %d and %d and "
+	    " t1.run_type = 'Asymmetry' and t1.asym_oct = 'A1'"/* and t2.live_time_e > 0"
+	    " and t2.run_number=t1.run_number"*/,runnum-5,runnum+5);
+  } else if(!strncmp(octtype,"A5",2)){
+    sprintf(buffer," select t1.run_number,t1.geometry,t1.asym_oct,t1.gate_valve " 
+	    " from run as t1, analysis as t2 where t1.run_number between %d and %d and "
+	    " t1.run_type = 'Asymmetry' and t1.asym_oct = 'A4'"/*
+	    " and t2.run_number = t1.run_number and t2.live_time_e >0 "*/,runnum-5,runnum+5);
+  } else if(!strncmp(octtype,"A7",2)){
+    sprintf(buffer," select t1.run_number,t1.geometry,t1.asym_oct,t1.gate_valve " 
+	    " from run as t1, analysis as t2 where t1.run_number between %d and %d and "
+	    " t1.run_type = 'Asymmetry' and t1.asym_oct = 'A9'"/*
+	    " and t2.run_number = t1.run_number and t2.live_time_e >0 "*/,runnum-5,runnum+5);
+  } else if(!strncmp(octtype,"A10",2)){
+    sprintf(buffer," select t1.run_number,t1.geometry,t1.asym_oct,t1.gate_valve "
+	    " from run as t1, analysis as t2 where t1.run_number between %d and %d and "
+	    " t1.run_type = 'Asymmetry' and t1.asym_oct = 'A12'"/*
+	    "and t2.run_number = t1.run_number and t2.live_time_e >0 "*/,runnum-5,runnum+5);
+  } else if(!strncmp(octtype,"B2",2)){
+    if((runnum < 8277 && runnum > 9189) || runnum > 12400){
+    sprintf(buffer," select t1.run_number,t1.geometry,t1.asym_oct,t1.gate_valve "
+	    " from run as t1, analysis as t2 where t1.run_number between %d and %d and "
+	    " t1.run_type = 'Asymmetry' and t1.asym_oct = 'B1'"/*
+	    " and t1.run_number = t2.run_number and t2.live_time_e >0"*/,runnum-7,runnum+7);
+    } else {
+      sprintf(buffer," select t1.run_number,t1.geometry,t1.asym_oct,t1.gate_valve "
+	    " from run as t1, analysis as t2 where t1.run_number between %d and %d and "
+	    " t1.run_type = 'Asymmetry' and t1.asym_oct = 'A12'"/*
+	    " and t1.run_number = t2.run_number and t2.live_time_e >0"*/,runnum-5,runnum+5);
+    }
+  } else if(!strncmp(octtype,"B5",2)){
+    sprintf(buffer," select t1.run_number,t1.geometry,t1.asym_oct,t1.gate_valve "
+	    " from run as t1, analysis as t2 where t1.run_number between %d and %d and "
+	    " t1.run_type = 'Asymmetry' and t1.asym_oct = 'B4'"
+	    /*" and t1.run_number = t2.run_number and t2.live_time_e >0"*/,runnum-5,runnum+5);
+  } else if(!strncmp(octtype,"B7",2)){
+    sprintf(buffer," select t1.run_number,t1.geometry,t1.asym_oct,t1.gate_valve "
+	    " from run as t1, analysis as t2 where t1.run_number between %d and %d and "
+	    " t1.run_type = 'Asymmetry' and t1.asym_oct = 'B9'"
+	   /* " and t2.run_number = t1.run_number and t2.live_time_e >0 "*/,runnum-5,runnum+5);
+  } else if(!strncmp(octtype,"B10",2)){
+    sprintf(buffer," select t1.run_number,t1.geometry,t1.asym_oct,t1.gate_valve "
+	    " from run as t1, analysis as t2 where t1.run_number between %d and %d and "
+	    " t1.run_type = 'Asymmetry' and t1.asym_oct = 'B12'"
+	    /*" and t2.run_number = t1.run_number and t2.live_time_e >0 "*/,runnum-5,runnum+5);
+  }
+  
+  res = (TSQLResult*)sql->Query(buffer);
+  runb = 0;
+  if(res->GetRowCount() != 0){
+    while((row = (TSQLRow*)res->Next())){
+      runb = atoi(row->GetField(0));
+      delete row;
+    }
+  }
+  
+  //cout << runnum << " bk is " << runb << endl;
+
+  // the following list is a fix for bad background runs...  
+  if(runnum == 15321) runb = 15320;
+  if(runnum == 16190) runb = 16189;
+  if(runnum == 14419) runb = 14418;
+  if(runnum > 15111 && runnum < 15115) runb = 15102;
+  if(runnum == 13950) runb = 13943;
+  if(runnum == 12531) runb = 12524;
+  if(runnum == 12647) runb = 12646;
+  if(runnum == 12443) runb = 12442;
+  if(runnum == 11048) runb = 11058;
+  if(runnum == 11022) runb = 11032;
+  if(runnum == 11007) runb = 11020;
+  if(runnum == 10891) runb = 10905;
+  if(runnum == 10545) runb = 10539;
+  if(runnum == 10535) runb = 10552;
+  if(runnum == 10308) runb = 10321;
+  if(runnum == 10252) runb = 10263;
+  if(runnum == 10281) runb = 10291;
+  if(runnum == 10148) runb = 10160;
+  if(runnum == 10011) runb = 10022;
+  if(runnum == 9754)  runb = 9771;
+  if(runnum == 9163)  runb = 9172;
+  if(runnum == 9024)  runb = 9029;
+  if(runnum == 9788)  runb = 9798;
+  if(runnum == 9718)  runb = 9728;
+  if(runnum == 9577)  runb = 9568;
+  if(runnum == 9430)  runb = 9440;
+  if(runnum == 9085)  runb = 9087;
+  if(runnum == 8658)  runb = 8662;
+  if(runnum == 9861)  runb = 9858;
+  if(runnum == 9759)  runb = 9756;
+  if(runnum == 9610)  runb = 9603;
+  if(runnum == 9387)  runb = 9398;
+  if(runnum == 9596)  runb = 9593;
+  if(runnum == 9594)  runb = 9593;
+  if(runnum == 9052)  runb = 9046;
+  if(runnum == 8993)  runb = 8984;
+  if(runnum == 8864)  runb = 8853;
+  if(runnum == 8854)  runb = 8853;
+  if(runnum == 8740)  runb = 8744;
+  if(runnum == 8985)  runb = 8984;
+  if(runnum == 8814)  runb = 8826;
+  if(runnum == 8706)  runb = 8716;
+  if(runnum == 8595)  runb = 8605;
+  if(runnum == 8570)  runb = 8581;
+  if(runnum == 8518)  runb = 8529;
+  if(runnum == 8312)  runb = 8377;
+  if(runnum == 8278)  runb = 8292;
+  if(runnum == 8008)  runb = 8007;
+  if(runnum == 7942)  runb = 7941;
+  if(runnum == 7921)  runb = 7920;
+  if(runnum == 7879)  runb = 7878;
+  if(runnum == 7876)  runb = 7875;
+  if(runnum == 7873)  runb = 7872;
+  if(runnum == 7831)  runb = 7830;
+  if(runnum == 7729)  runb = 7728;
+  if(runnum == 7709)  runb = 7707;
+  if(runnum == 7702)  runb = 7701;
+  if(runnum == 7663)  runb = 7662;
+  if(runnum == 7687)  runb = 7686;
+  
+  if(runb == 0) cout << "failed to find background for run " << runnum << endl;
+
+  delete res;
+    
+  return runb;
+}
+//------------------------------------------------------------------------------------
+Double_t Int_Asym(Double_t x1,Double_t x2)
+{
+  // Calculate the Simple Asymmetry 
+  return (x1-x2)/(x1+x2);
+}
+//------------------------------------------------------------------------------------
+Double_t Asym_Err(Double_t x1,Double_t x2)
+{
+  using namespace TMath;
+
+  return 2.*sqrt(x1*x2 / Power(x1+x2,3));
+}
+//------------------------------------------------------------------------------------
+Int_t Beta_Run::GetSimpleAsym()
+{
+  // Calculate the Simple Rate Difference Integral Asymmetry 
+  using namespace TMath;
+  
+  for(Int_t i = 0 ; i < 40 ; i++){
+     fAsym_Run[i]     = Int_Asym(heq->Integral(i+1,60),hwq->Integral(i+1,60));
+     fAsym_Run_Err[i] = Asym_Err(heq->Integral(i+1,60),hwq->Integral(i+1,60));
+  }
+  
+  return -1;
+}
+//-------------------------------------------------------------------------------------
+Double_t Beta_Run::GetEnergyChi()
+{
+  using namespace TMath;
+  
+  TF1 *fline = new TF1("fline","[0]",900.,1500.);
+  
+  fstream fref;
+  if(runnum >=  7659 && runnum <= 9189){
+    fref.open("input_files/histogram_geoA.txt",fstream::in);
+  } else if(runnum >= 9356 && runnum <= 10333) {
+    fref.open("input_files/histogram_geoB.txt",fstream::in);
+  } else if(runnum >= 10404 && runnum <= 11095) {
+    fref.open("input_files/histogram_geoC.txt",fstream::in);
+  } else if(runnum > 13905){
+    fref.open("input_files/histogram_e.txt",fstream::in);
+  }
+  Double_t temp1,temp2,temp3,temp4;
+  
+  Int_t ibin = 1;
+  do{
+     fref >> temp1 >> temp2 >> temp3 >> temp4;
+     hEERef->SetBinContent(ibin,temp2);
+     hEERef1->SetBinContent(ibin,temp3);
+     hEERef2->SetBinContent(ibin,temp4);
+     ibin++;
+  }while(ibin < 101);
+  
+  fref.close();
+  /*
+  hEERef->Scale(heq->Integral(nlow,nhigh)/hEERef->Integral(nlow,nhigh));
+  hEERef1->Scale(hEtype_1->Integral(nlow,nhigh)/hEERef1->Integral(nlow,nhigh));
+  hEERef2->Scale(hEtype_23->Integral(nlow,nhigh)/hEERef2->Integral(nlow,nhigh));
+  
+  Double_t scaling = heq->Integral(nlow,nhigh) / hEERef->Integral(nlow,nhigh);
+
+  for(Int_t i = 1 ; i <= heq->GetNbinsX() ; i++){
+    Diff[i-1] = heq->GetBinContent(i) - hEERef->GetBinContent(i)*scaling;
+    if(heq->GetBinError(i) > 0){
+      Diff[i-1] = Power(Diff[i-1]/heq->GetBinError(i),2);
+    } else {
+      Diff[i-1] = 0.;
+    }
+  }
+  */
+  heq->Fit(fline,"RMEQ","goff");
+  Residual_Bkg[0] = fline->GetParameter(0);
+  Resid_Bkger[0]  = fline->GetParError(0);
+  
+  hwq->Fit(fline,"RMEQ","goff");
+  Residual_Bkg[1] = fline->GetParameter(0);
+  Resid_Bkger[1]  = fline->GetParError(0);
+  
+  Chi = 0.;
+  
+  for(Int_t i = 1 ; i <= heq->GetNbinsX() ; i++){
+    Chi += Diff[i-1]/80;
+  }
+   
+  delete fline;
+  
+  return 1.;
+}
+
+Int_t Beta_Run::Make_Kurie()
+{
+  // Simple function to calculate the Kurie plots and find the
+  // end point energy east and west sides.
+  
+  TF1 *fline = new TF1("fline","[0]+[1]*x",200,650);
+  FillKurie(heq,hEKurie);  
+/*
+
+  Float_t mass = 510.9991; // Electron Rest mass
+  Float_t xt   = 0.;
+  Float_t pt   = 0.;
+  Float_t et   = 0.;
+  Float_t kt   = 0.;
+  Float_t kter = 0.;
+  
+  for(Int_t i = 1 ; i <= heq->GetNbinsX() ; i++){
+    xt = heq->GetBinContent(i);
+    et = heq->GetBinCenter(i);
+    pt = et*(et+2.*mass);
+    if(xt > 0){
+      kt   = sqrt(xt / (pt*fermi(heq->GetBinCenter(i))));
+      kter = kt*(heq->GetBinError(i)/heq->GetBinContent(i));
+    }else{
+      kt   = 0;
+      kter = 0.;
+    }
+    hEKurie->SetBinContent(i,kt);
+    hEKurie->SetBinError(i,kter);
+  }
+  */
+  hEKurie->Fit(fline,"RMEQ","");
+  E_Endpoint = TMath::Abs(fline->GetParameter(0) / fline->GetParameter(1));
+  E_EndError = E_Endpoint*sqrt(
+			       TMath::Power(fline->GetParError(0)
+					    /fline->GetParameter(0),2)
+			       +TMath::Power(fline->GetParError(1)/
+					     fline->GetParameter(1),2)
+			       );
+  FillKurie(hwq,hWKurie);
+ /*
+  for(Int_t i = 1 ; i <= hwq->GetNbinsX() ; i++){
+    xt = hwq->GetBinContent(i);
+    et = hwq->GetBinCenter(i);
+    pt = et*(et+2.*mass);
+    if(xt > 0){
+      kt   = sqrt(xt /( pt*fermi(hwq->GetBinCenter(i))));
+      kter = kt*(hwq->GetBinError(i)/hwq->GetBinContent(i));
+    } else {
+      kt = 0;
+      kter = 0.;
+    }
+    hWKurie->SetBinContent(i,kt);
+    hWKurie->SetBinError(i,kter);
+  }
+  */
+  hWKurie->Fit(fline,"RMQE","");
+  
+  W_Endpoint = TMath::Abs(fline->GetParameter(0) / fline->GetParameter(1));
+  
+  W_EndError = W_Endpoint*sqrt(
+			       TMath::Power(fline->GetParError(0)
+					    /fline->GetParameter(0),2)
+			       +TMath::Power(fline->GetParError(1)/
+					     fline->GetParameter(1),2)
+			       );
+  
+  
+  if(W_Endpoint < 500 || W_Endpoint > 1000)
+    cout << "Odd West End Point " << W_Endpoint << "\t for Run " << runnum << endl;
+  
+  if(E_Endpoint < 500 || E_Endpoint > 1000)
+    cout << "Odd East End Point " << E_Endpoint << "\t for Run " << runnum << endl;
+  
+ delete fline;
+ 
+ return -1;
+}
+
+void Beta_Run::FillKurie(TH1F *hEspec,TH1F *hKurie)
+{
+  Float_t mass = 510.9991; // Electron Rest mass
+  Float_t xt   = 0.;
+  Float_t pt   = 0.;
+  Float_t et   = 0.;
+  Float_t kt   = 0.;
+  Float_t kter = 0.;
+
+  for(Int_t i = 1 ; i <= hEspec->GetNbinsX() ; i++){
+    xt = hEspec->GetBinContent(i);
+    et = hEspec->GetBinCenter(i);
+    pt = et*(et+2.*mass);
+    if(xt > 0){
+      kt   = sqrt(xt / (pt*fermi(hEspec->GetBinCenter(i))));
+      kter = kt*(hEspec->GetBinError(i)/hEspec->GetBinContent(i));
+    }else{
+      kt   = 0;
+      kter = 0.;
+    }
+    hKurie->SetBinContent(i,kt);
+    hKurie->SetBinError(i,kter);
+  }
+
+}
+//-------------------------------------------------------------------------
+Double_t fermi(Double_t x)
+{
+  //  Expansion of the Fermi function from Wilkinson 1981 Nucl Physics A377.
+  using namespace TMath;
+  
+  if(x == 0.) x+=50.;
+  
+  Double_t m = 510.9991; // electron rest mass;
+  Double_t perm = 8.85418e-12; // 
+  Double_t alpha = Qe()*Qe()/(Hbar()*C()*4.*Pi()*perm); // fine structure constant
+  Double_t R = 1.e-15; // Proton Raduis
+  
+  Double_t W = x/m + 1.; // Total energy in terms of electron rest mass;
+  Double_t p = sqrt(W*W-1.); // momentum 
+  Double_t pi = Pi();  
+  Double_t gammae = 0.577215; // Euler's constant
+    
+  //  Double_t RC = 0.0390;
+
+  Double_t a0 = 1.;
+  Double_t a1 = pi*W/p;
+  Double_t a2 = 11./4. - gammae - log(2.*p*R) + pi*pi*(W/p)*(W/p);
+  Double_t a3 = pi*(W/p)*(11./4. - gammae - log(2.*p*R));
+  
+  Double_t f = a0 + a1*alpha + a2*alpha*alpha + a3*alpha*alpha*alpha;
+
+  if( IsNaN(f) == 1){
+    f = 1.;
+  } 
+  
+  return f;
+}
+
+//-----------------------------------------------------------------------
+Double_t Rate_Error(TH1F *h1, TH1F *h2, Float_t t1,Float_t t2)
+{
+  
+  // Rate Error in a background subtracted spectra.
+  // Bin error should be correctly set in the Run::Scale2Time function
+  // Thus for background subtraction, h1 and h2 are in rates and 
+  // the errors per bin are in rates so dR_beta = sqrt(dR_s^2 + dR_b^2)
+  //
+
+  using namespace TMath;
+
+  Double_t error = 0.;
+  
+  for(Int_t i = 1 ; i <= h1->GetNbinsX() ; i++){
+  
+    error = Sqrt(Abs(h1->GetBinError(i)*h1->GetBinError(i) + h2->GetBinError(i)*h2->GetBinError(i)));
+    h1->SetBinError(i,error);
+				          
+  }
+  
+  return -1.e3;
+}
+//----------------------------------------------------------------------------------------
+Double_t Rate_Error(TH1F *h1, TH1F *h2, TH1F *h3, TH1F *h4, Float_t t1,Float_t t2)
+{
+  
+  //----------------------------------------------------------------------------------------------
+  // Calculate the error in the MWPC on off test.  With St = (Snomwpc - Bnomwpc) - (Smwpc -Bmwpc)
+  // These look complicated becasuse the h1 = St, so its all ready by background and Smwpc subtracted.
+  //----------------------------------------------------------------------------------------------
+  
+  using namespace TMath;
+  Double_t error = 0.;
+  for(Int_t i = 1 ; i <= h1->GetNbinsX() ; i++){
+
+    error =  Sqrt(Abs((h1->GetBinContent(i)+2.*h3->GetBinContent(i) +h2->GetBinContent(i) +
+		       h4->GetBinContent(i))*t1 +
+		      (h2->GetBinContent(i) + h4->GetBinContent(i))*t2))/t1;
+    
+    if(error <= 0) error = 1./t1;
+
+    h1->SetBinError(i,error);
+				          
+  }
+  
+  return -1.e3;
+}
+//----------------------------------------------------------------------------------------
+
+Double_t GetIntError(TH1F *h1, TH1F *h2, TH1F *h3,TH1F *h4,Float_t t1, Float_t t2)
+{
+  //---------------------------------------------------
+  // Calculate the error in the mwpc on / off ratio
+  //---------------------------------------------------
+  
+  using namespace TMath;
+
+  Double_t S  = (h1->Integral(nlow,nhigh) + h2->Integral(nlow,nhigh) + h3->Integral(nlow,nhigh))*t1;
+  Double_t Bb = h2->Integral(nlow,nhigh)*t2;
+  Double_t Sn = (h3->Integral(nlow,nhigh)+h4->Integral(nlow,nhigh))*t1;
+  Double_t Bn = h4->Integral(nlow,nhigh)*t2;
+
+  Double_t Tm1 = Bb / Power(Sn-Bn,2);
+  Double_t Tm2 = Sn / Power(Sn-Bn,2);
+  Double_t Tm3 = Sn*Power( 1./(Sn-Bn) + (S-Sn+Bn-Bb)/Power(Sn-Bn,2),2);
+  Double_t Tm4 = Bn*Power( 1./(Sn-Bn) + (S-Sn+Bn-Bb)/Power(Sn-Bn,2),2);
+
+  Double_t er = Sqrt(Tm1+Tm2+Tm3+Tm4);
+  
+  return er;
+		
+};
+
+#endif

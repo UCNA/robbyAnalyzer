@@ -1,0 +1,2 @@
+use replay_04222011;
+select t1.run_number,t3.sensor_name,t2.sensors_sensor_id,t2.value from  pedestal_set as t1, pedestals as t2,sensors as t3 where t1.run_number = 15175 and t1.pedestal_set_id = t2.pedestal_set_id and t3.sensor_id = t2.sensors_sensor_id;

@@ -1,0 +1,81 @@
+#ifndef __analysisPlotFunc_c__
+#define __analysisPlotFunc_c__
+
+#include "analysis.h"
+
+Double_t DrawEnergyPanel(TH1F *hEdraw,TH1F *hERef,TH1F *hTot,TH1F *hRefTot,Int_t npad,TCanvas *c,Double_t scaling)
+{  
+   Double_t scalefactor = 1.;
+
+   //if(npad%3 == 1)
+     scalefactor = hTot->Integral()/hRefTot->Integral();
+   //else 
+   //  scalefactor = scaling;
+
+   hERef->Scale(scalefactor);
+  
+   c->cd(npad);
+   hEdraw->GetYaxis()->SetRangeUser(0,max(hERef->GetBinContent(hERef->GetMaximumBin()),
+                                         hEdraw->GetBinContent(hEdraw->GetMaximumBin()))*1.1);
+   hEdraw->GetXaxis()->SetRangeUser(0,1000);
+   hEdraw->Draw();
+   // Set up the canvas......................................................................
+   hEdraw->GetYaxis()->CenterTitle();
+   hEdraw->GetXaxis()->CenterTitle();
+   hEdraw->GetYaxis()->SetTitleSize(0.08);
+   hEdraw->GetXaxis()->SetTitleSize(0.08);
+   hEdraw->GetYaxis()->SetTitleOffset(0.6);
+   hEdraw->GetXaxis()->SetTitleOffset(0.6);
+   hEdraw->GetXaxis()->SetLabelSize(1.2*hEdraw->GetXaxis()->GetLabelSize());
+   hEdraw->SetMarkerStyle(7);
+   hERef->SetLineColor(2);
+   hERef->Draw("same");
+
+   return scalefactor;
+};
+
+void DrawMWPCPanel1(TH1F *h1,TH1F *h2,TH1F *h3,TH1F *h4,TLegend *leg1,
+                   Double_t ErrIntOff,Double_t ErrRatOff,Double_t ErrIntOn,Double_t ErrRatOn)
+{ 
+  
+  ColorGraphic(h1,2,1,1,0.6);
+  ColorGraphic(h2,2,1,1,0.6);
+  ColorGraphic(h3,1,1,1,0.6);
+  ColorGraphic(h4,1,1,1,0.6);
+  h3->SetMarkerStyle(25);
+  h4->SetMarkerStyle(21);
+  h4->Draw("P");
+  h3->Draw("same P");
+  h1->SetMarkerStyle(4);
+  h2->SetMarkerStyle(20);
+  h1->Draw("same P");
+  h2->Draw("same P");
+  
+  h4->GetXaxis()->SetRangeUser(0,1000);
+  h4->GetYaxis()->SetRangeUser(-0.1,0.1);
+  
+  leg1 = new TLegend(0.4,0.7,0.9,0.9);
+  leg1->AddEntry(h3,Form("Rate Off (200-600 keV) %5.4f #pm %5.4f",h3->Integral(nlow,nhigh)
+                      ,ErrIntOff),"lp");
+  leg1->AddEntry(h3,Form("Ratio (200-600 keV) %5.4f #pm %5.4f",h3->Integral(nlow,nhigh)/h4->Integral(nlow,nhigh)
+                      ,ErrRatOff),"lp");
+  leg1->AddEntry(h1,Form("Rate On (200-600 keV) %5.4f #pm %5.4f",h1->Integral(nlow,nhigh)
+                      ,ErrIntOn),"lp");
+  leg1->AddEntry(h1,Form("Ratio (200-600 keV) %5.4f #pm %5.4f",h1->Integral(nlow,nhigh)/h2->Integral(nlow,nhigh)
+                      ,ErrRatOn),"lp");
+  
+  leg1->SetFillColor(0);
+  leg1->Draw();
+
+};
+
+Double_t* Vector2Array(std::vector<Double_t> v,const Int_t sizev)
+{
+  Double_t array[sizev];
+
+  for(Int_t i = 0 ; i < sizev ; i++)array[i] = v[i];
+
+  return array;
+}
+
+#endif 
