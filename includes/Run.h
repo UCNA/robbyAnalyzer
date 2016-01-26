@@ -68,7 +68,19 @@ class Run {
     Int_t           TaggedBackW;
     Int_t           TaggedDriftW;
     Int_t           EvnbGood;
-    Int_t           BkhfGood;
+    Int_t           BkhfGood; 
+    
+/*    Bool_t           PassedAnoE;
+    Bool_t           PassedCathE;
+    Bool_t           PassedAnoW;
+    Bool_t           PassedCathW;
+    Bool_t           TaggedTopE;
+    Bool_t           TaggedBackE;
+    Bool_t           TaggedDriftE;
+    Bool_t           TaggedBackW;
+    Bool_t           TaggedDriftW;
+    Bool_t           EvnbGood;
+    Bool_t           BkhfGood;  */
     
     Float_t         eastX[16];
     Float_t         eastY[16];

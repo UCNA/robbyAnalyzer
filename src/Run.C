@@ -171,6 +171,7 @@ void Run::DeleteHistos()
   delete hWKurie;
   delete xr; 
   delete hmr1;
+  delete hCountTimeRecord;
 }
 
 Bool_t Run::OpenRun(Int_t n)
@@ -345,7 +346,7 @@ Int_t Run::Initialize_hist(Int_t n,Int_t nex,Int_t nwx)
   
   // Type 1 backscatter positions and rotations
   //------------------------------------------------------------------------------------------------------------------
-  CreateTH1F(hTDCDiff ,"hTDCDiff","#Delta TDC ; TDCE - TDCW ; Counts",1000,-200,200,-2);
+  CreateTH1F(hTDCDiff ,"hTDCDiff","#Delta TDC ; TDCE - TDCW ; Counts",2000,-200,1800,-2);
   CreateTH2F(hRote,"hRote","East Type 1 Backscattering Rotation ; X_{east} - X_{west} (mm) ; Y_{east} - Y_{west} (mm)",150,-75,75,150,-75,75,nEast);
   CreateTH2F(hRotw,"hRotw","West Type 1 Backscattering Rotation ; X_{east} - X_{west} (mm) ; Y_{east} - Y_{west} (mm)",150,-75,75,150,-75,75,nWest);
   CreateTH2F(hRoteI,"hRoteI","East Type 1 Backscattering Rotation ; X_{east} - X_{west} (mm) ; Y_{east} - Y_{west} (mm)",150,-75,75,150,-75,75,nEast);
@@ -440,6 +441,7 @@ Int_t Run::Initialize_hist(Int_t n,Int_t nex,Int_t nwx)
   }
   
   CreateTH1F(hmr1,"hmr1","UCN Monitor 2 Rate ; Time ; Rate",1000,0,4000,-2);
+  CreateTH1F(hCountTimeRecord,"hCountTimeRecord","Count Times ; Index ; Counts",10,0,9,-2);
 
   return 0;
 }
@@ -449,6 +451,58 @@ void Run::ScaleTDC()
   TDCE *= fEast_TDC_Scale;
   TDCW *= fWest_TDC_Scale;
 };
+
+Int_t Run::Count_Time_All()
+{
+  if(Side == 0 && CountTimeEAll==0){
+    CountTimeEFirst=TDCE-3000;
+    CountTimeEAll++;
+  }
+  else if(Side==0) {
+    CountTimeEAll=TDCE-3000;
+  }
+
+  if(Side == 1 && CountTimeWBeta==0){
+    CountTimeWFirst=TDCW-3000;
+    CountTimeWAll++;
+  }
+  else if(Side==1) {
+    CountTimeWAll=TDCW-3000;
+  }
+
+  hCountTimeRecord->SetBinContent(1,CountTimeEFirst);
+  hCountTimeRecord->SetBinContent(2,CountTimeEAll);
+  hCountTimeRecord->SetBinContent(5,CountTimeWFirst);
+  hCountTimeRecord->SetBinContent(6,CountTimeWAll); 
+
+  return -1;
+}
+
+Int_t Run::Count_Time_Beta()
+{
+  if(Side == 0 && CountTimeEBeta==0){
+    CountTimeEFirstBeta=TDCE-3000;
+    CountTimeEBeta++;
+  }
+  else if(Side==0) {
+    CountTimeEBeta=TDCE-3000;
+  }
+
+  if(Side == 1 && CountTimeWBeta==0){
+    CountTimeWFirstBeta=TDCW-3000;
+    CountTimeWBeta++;
+  }
+  else if(Side==1) {
+    CountTimeWBeta=TDCW-3000;
+  }
+
+  hCountTimeRecord->SetBinContent(3,CountTimeEFirstBeta);
+  hCountTimeRecord->SetBinContent(4,CountTimeEBeta);
+  hCountTimeRecord->SetBinContent(7,CountTimeWFirstBeta);
+  hCountTimeRecord->SetBinContent(8,CountTimeWBeta); 
+
+  return -1;
+}
 
 Int_t Run::Count_Gammas()
 {
@@ -780,6 +834,8 @@ Int_t Run::Book_Raw(Int_t entry)
     Handle_Backscatters(entry);
   }
   
+  if(PID!=2) Count_Time_All();
+  if(PID==1) Count_Time_Beta();
   return -1;
 }
 //------------------------------------------------------------------------
@@ -901,7 +957,7 @@ Int_t Run::Handle_Backscatters(Int_t entry)
 
   NTDCE-=3000; NTDCW-=3000;
  
-// cout << "TEST THINGS FOREVER AND EVER" << endl;
+//  cout << "TEST THINGS FOREVER AND EVER " << NTDCE << " " << NTDCW << " Diff: " << NTDCE-NTDCW << endl;
  
   // Fill timing differenc histogram
   hTDCDiff->Fill(NTDCE-NTDCW,1);
@@ -1359,6 +1415,7 @@ Int_t Run::GetHistograms(Int_t dunce)
   }
 
   hmr1   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hmr1_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  hCountTimeRecord   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hCountTimeRecord_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
 
   hEERef  = new TH1F("hEERef","Reference ; Channel ;Cts"  ,EBINS,0,ESCALE);
   hEERef1 = new TH1F("hEERef1","Reference ; Channel ;Cts",EBINS,0,ESCALE);

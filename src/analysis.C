@@ -82,13 +82,13 @@ void CallAnalysisTasks()
   cout << "Finished Octets" << endl;
   Average_A();
 //  cout << "Getting Octets " << endl;  
-//  Collect_Octets();
+//  Collect_Octets(); // Fails for large run lists
   cout << "Plot Chi2 Dist." << endl;
   Plot_ChiDis();
   cout << "Plotting Positions" << endl;
   Collect_Pos();                 
-//  cout << "Collecting Type Rotation " << endl;
-//  CollectTypeRot();
+  cout << "Collecting Type Rotation " << endl;
+  CollectTypeRot();  // Fails for large run lists and for other reasons w/e
   cout << "Collecting TDC Corruption Data " << endl;
   CollectTDCCor();
   cout << "Lets Find the Octets " << endl;
@@ -119,7 +119,9 @@ void CallAnalysisTasks()
   cout << "Anode MPV tracking" << endl;
   TrackAnodeMPV();
   TrackStats();       // Counts up events vs. date, not critical
-  average_type1();    // Non-functional?
+//  average_type1();    // Non-functional?->Relies on i
+        // hEType1_Primary/Secondary which are never filled in any 
+        // legacy code...
   PlotRunTimes();                       
 }
 
@@ -138,7 +140,7 @@ Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nru
       bk[i]->Calculate_Backscatter(1,1);
       bk[i]->Diagnosis_Run();
 
-/*      bk[i]->CountTimeEFirst=bk[i]->hCountTimeRecord->GetBinContent(1);
+      bk[i]->CountTimeEFirst=bk[i]->hCountTimeRecord->GetBinContent(1);
       bk[i]->CountTimeEAll=bk[i]->hCountTimeRecord->GetBinContent(2);
       bk[i]->CountTimeEFirstBeta=bk[i]->hCountTimeRecord->GetBinContent(3);
       bk[i]->CountTimeEBeta=bk[i]->hCountTimeRecord->GetBinContent(4);
@@ -146,7 +148,7 @@ Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nru
       bk[i]->CountTimeWAll=bk[i]->hCountTimeRecord->GetBinContent(6);
       bk[i]->CountTimeWFirstBeta=bk[i]->hCountTimeRecord->GetBinContent(7);
       bk[i]->CountTimeWBeta=bk[i]->hCountTimeRecord->GetBinContent(8);
-*/
+
 /*
       for(Int_t k=0; k<10000000000; k++){
 	if(bk[i]->hClockE->GetBinContent(k)==0 && bk[i]->hClockE->GetBinContent(k+1)==0) k=-1;
@@ -188,7 +190,7 @@ Int_t analyze_beta_runs(Int_t n, std::vector<Beta_Run*>bta,vector<Int_t> nrunl,I
       bta[i]->Scale2Time(1,1);
       bta[i]->Diagnosis_Run();
 
-/*      bta[i]->CountTimeEFirst=bta[i]->hCountTimeRecord->GetBinContent(1);
+      bta[i]->CountTimeEFirst=bta[i]->hCountTimeRecord->GetBinContent(1);
       bta[i]->CountTimeEAll=bta[i]->hCountTimeRecord->GetBinContent(2);
       bta[i]->CountTimeEFirstBeta=bta[i]->hCountTimeRecord->GetBinContent(3);
       bta[i]->CountTimeEBeta=bta[i]->hCountTimeRecord->GetBinContent(4);
@@ -196,7 +198,7 @@ Int_t analyze_beta_runs(Int_t n, std::vector<Beta_Run*>bta,vector<Int_t> nrunl,I
       bta[i]->CountTimeWAll=bta[i]->hCountTimeRecord->GetBinContent(6);
       bta[i]->CountTimeWFirstBeta=bta[i]->hCountTimeRecord->GetBinContent(7);
       bta[i]->CountTimeWBeta=bta[i]->hCountTimeRecord->GetBinContent(8);
-*/
+
 /*      for(Int_t k=0; k<10000000000000000; k++){
 	if(bta[i]->hClockE->GetBinContent(k)==0 && bta[i]->hClockE->GetBinContent(k+1)==0) break;
 	else{bta[i]->EastClock[k]=bta[i]->hClockE->GetBinContent(k);  bta[i]->BetasEast++;}
@@ -761,6 +763,7 @@ void CollectTypeRot()
   }
   last = 0;
 */
+
   for(Int_t i = 0 ; i <nbeta ; i++){
     if(i == nbeta - 1)last = 1;
     cout << i << "th run of " << nbeta << endl;
@@ -775,6 +778,7 @@ void CollectTypeRot()
     CollectAllRot(wcountI23,rbins,rbins,btr[i]->hRotwI23,hTotRotwI23,last);
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
+
   last = 0;
 
   cout << "Post-CTR Loops" << endl;
@@ -868,7 +872,10 @@ void CollectTypeRot()
   hTotRotwI23->Draw("colz");
   el233->Draw();
 
-  delete hTotRote; delete hTotRoteI; delete hTotRotw; delete hTotRotwI;
+ // delete hTotRote; 
+  delete hTotRoteI; 
+ // delete hTotRotw; 
+  delete hTotRotwI;
   delete hTotRote23; delete hTotRotw23; delete hTotRotwI23; delete hTotRoteI23;
   delete crot23; delete el233; delete el2; delete el1c; delete el1cc; delete el23;
   
@@ -932,6 +939,7 @@ void CollectTypeRot()
   Double_t Xinter,Yinter;
   TLine  *lEastNorm[5625],*lWestNorm[5625];
   hTotRote->Draw("colz");
+  delete hTotRote; 
   //------------------------------------------------------------------------------------------------------------------------
   // Define 2d histograms to hold the line intersection points.
   TH2F *hEastIntersection = new TH2F("hEastIntersection","East Point of Intersection;X(mm);Y(mm);"
@@ -1006,6 +1014,7 @@ void CollectTypeRot()
   // repeat process for the west side
   crot->Clear();
   hTotRotw->Draw("colz");
+  delete hTotRotw; 
 
   for(Int_t iline = 0; iline < hAveWest1XRot->GetNbinsX()*hAveWest1XRot->GetNbinsY(); iline++)
           GetNorm(hAveEast1XRot,hAveEast1YRot,lWestNorm[iline],lWestDis[iline],crot,iline);
@@ -1268,11 +1277,6 @@ void CalcSimplSuper()
     Get_Base_Super(k,(char*)"A9",(char*)"A12"); //  uses btr, wrote
     Get_Base_Super(k,(char*)"B1",(char*)"B4"); //   Get_Base_Super_Back
     Get_Base_Super(k,(char*)"B9",(char*)"B12"); //  to read bckr
-
-//    Get_Base_Super_Back(k,(char*)"A1",(char*)"A4");  // Original Get_Base_Super
-//    Get_Base_Super_Back(k,(char*)"A9",(char*)"A12"); //  uses btr, wrote
-//    Get_Base_Super_Back(k,(char*)"B1",(char*)"B4"); //   Get_Base_Super_Back
-//    Get_Base_Super_Back(k,(char*)"B9",(char*)"B12"); //  to read bckr
 
     BkgdWestOne[k] = bckr[k]->BetasWest + 1.0;
     BkgdEastOne[k] = bckr[k]->BetasEast + 1.0;
@@ -1783,20 +1787,20 @@ void Get_Base_Super_Back(Int_t i, char oct1[4],char oct2[4])
 void Plot_Timing()
 {
   
-  TH1F *hTimeDiffEndE = new TH1F(Form("hTimeDiffEndE"),"End of Run Difference, East",100,-0.05,0.95);
-  TH1F *hTimeDiffEndW = new TH1F(Form("hTimeDiffEndW"),"End of Run Difference, West",100,-0.05,0.95);
-  TH1F *hTimeDiffFirstE = new TH1F(Form("hTimeDiffFirstE"),"Begin of Run Difference, East",100,-0.05,6.95);
-  TH1F *hTimeDiffFirstW = new TH1F(Form("hTimeDiffFirstW"),"Begin of Run Difference, West",100,-0.05,6.95);
+  TH1F *hTimeDiffEndE = new TH1F(Form("hTimeDiffEndE"),"End of Run Difference, East",3000,-100.05,200.95);
+  TH1F *hTimeDiffEndW = new TH1F(Form("hTimeDiffEndW"),"End of Run Difference, West",3000,-100.05,200.95);
+  TH1F *hTimeDiffFirstE = new TH1F(Form("hTimeDiffFirstE"),"Begin of Run Difference, East",3000,-100.05,200.95);
+  TH1F *hTimeDiffFirstW = new TH1F(Form("hTimeDiffFirstW"),"Begin of Run Difference, West",3000,-100.05,200.95);
   /*TH1F *hLiveTimeRecW = new TH1F(Form("hLiveTimeRecW"),"Recorded Live Time West",110,0,4400);
   TH1F *hLiveTimeRecE = new TH1F(Form("hLiveTimeRecE"),"Recorded Live Time West",110,0,4400); 
   TH1F *hLiveTimeBetaW = new TH1F(Form("hLiveTimeBetaW"),"True Live Time West (Betas)",110,0,4400);
   TH1F *hLiveTimeBetaE = new TH1F(Form("hLiveTimeBetaW"),"True Live Time East (Betas)",110,0,4400);
   TH1F *hLiveTimeAllW = new TH1F(Form("hLiveTimeAllW"),"True Live Time West (All)",110,0,4400);
   TH1F *hLiveTimeAllE = new TH1F(Form("hLiveTimeAllE"),"True Live Time East (All)",110,0,4400);*/
-  TH1F *hLiveTimeDiffW = new TH1F(Form("hLiveTimeDiffW"),"Event/Beta Live Time Diff., W",1000,-0.05,100.95);
-  TH1F *hLiveTimeDiffE = new TH1F(Form("hLiveTimeDiffE"),"Event/Beta Live Time Diff., E",1000,-0.05,100.95);
-  TH1F *hDiffBetaUp = new TH1F(Form("hDiffBetaUp"),"Beta Live Time Difference (E-W) Spin Up",100,-1000.0,1000.0);
-  TH1F *hDiffBetaDown = new TH1F(Form("hDiffBetaDown"),"Beta Live Time Difference (E-W) Spin Down",100,-1000.0,1000.0);
+  TH1F *hLiveTimeDiffW = new TH1F(Form("hLiveTimeDiffW"),"Event/Beta Live Time Diff., W",3000,-100.05,200.95);
+  TH1F *hLiveTimeDiffE = new TH1F(Form("hLiveTimeDiffE"),"Event/Beta Live Time Diff., E",3000,-100.05,200.95);
+  TH1F *hDiffBetaUp = new TH1F(Form("hDiffBetaUp"),"Beta Live Time Difference (E-W) Spin Up",3000,-100.0,200.0);
+  TH1F *hDiffBetaDown = new TH1F(Form("hDiffBetaDown"),"Beta Live Time Difference (E-W) Spin Down",3000,-100.0,200.0);
 
   for(Int_t i = 0; i < nbeta; i++) {
 
@@ -2190,12 +2194,12 @@ void Collect_Octets()
 
   using namespace TMath;
   
-  TF1 *flA = new TF1("flA","[0]",0,noct);
-  TF1 *flB = new TF1("flB","[0]",0,noct);
+/*  TF1 *flA = new TF1("flA","[0]",0,noct);   // These functions look 
+  TF1 *flB = new TF1("flB","[0]",0,noct);      // removed
 
   flA->SetLineColor(2);
   flB->SetLineColor(4);
-
+*/
   // Analysis choice arrays..
   
   Asym_t A_sum_A,A_sum_B,A_multi_A,A_multi_B;
@@ -2267,30 +2271,10 @@ void Collect_Octets()
   char htitleeast[2000];
   char hnamewest[2000];
   char htitlewest[2000];
-  /*char cname[2000];
-  char ctitle[2000];
-  char ftitle[2000];
-  char eastevnt[2000];
-  char westevnt[2000];
-  char eastevntbkg[2000];
-  char westevntbkg[2000];*/
   char hnameeastf[2000];
   char htitleeastf[2000];
   char hnamewestf[2000];
   char htitlewestf[2000];
-  /*char eastevntf[2000];
-  char westevntf[2000];
-  char eastevntbkgf[2000];
-  char westevntbkgf[2000];
-  TCanvas *lastfive[2000];
-  TPaveText *lwb[2000];
-  TPaveText *leb[2000];
-  TPaveText *le[2000];
-  TPaveText *lw[2000];
-  TPaveText *fwb[2000];
-  TPaveText *feb[2000];
-  TPaveText *fe[2000];
-  TPaveText *fw[2000];*/
   char hnamebkgeast[2000];
   char htitlebkgeast[2000];
   char hnamebkgwest[2000];
@@ -2355,55 +2339,13 @@ void Collect_Octets()
   SumLastFiveWS[i] = SumLastFiveW[i];
   SumFirstFiveES[i] = SumFirstFiveE[i];
   SumFirstFiveWS[i] = SumFirstFiveW[i];
-  /*sprintf(cname,"fivesecstudy%d",i);
-  sprintf(ctitle,"fivesecstudy%d",i);
-  lastfive[i] = new TCanvas(cname,ctitle,10,10,600,600);
-  lastfive[i]->Divide(2,4);
-  lastfive[i]->cd(1);
-  hLastFiveEast[i]->Draw("hist");
-  hLastFiveEast[i]->GetXaxis()->SetTitle("Time (sec)");
-  hLastFiveEast[i]->GetXaxis()->CenterTitle();
-  sprintf(eastevnt,"%.1f",SumLastPThreeE[i]);
-  le[i] = new TPaveText(.73,.62,0.98,0.74,"NDC");
-  le[i]->AddText("E Det Evnt (last 0.3 s):");
-  le[i]->AddText(eastevnt);
-  le[i]->SetTextSize(0.04);
-  le[i]->Draw();
-  lastfive[i]->Update();
-  lastfive[i]->cd(2);
-  hLastFiveWest[i]->Draw("hist");
-  hLastFiveWest[i]->GetXaxis()->SetTitle("Time (sec)");
-  hLastFiveWest[i]->GetXaxis()->CenterTitle();
-  sprintf(westevnt,"%.1f",SumLastPThreeW[i]);
-  lw[i] = new TPaveText(.73,.62,0.98,0.74,"NDC");
-  lw[i]->AddText("W Det Evnt (last 0.3 s):");
-  lw[i]->AddText(westevnt);
-  lw[i]->SetTextSize(0.04);
-  lw[i]->Draw();
-  lastfive[i]->Update();
-  lastfive[i]->cd(3);
-  hFirstFiveEast[i]->Draw("hist");
-  hFirstFiveEast[i]->GetXaxis()->SetTitle("Time (sec)");
-  hFirstFiveEast[i]->GetXaxis()->CenterTitle();
-  sprintf(eastevntf,"%.1f",SumFirstPThreeE[i]);
-  fe[i] = new TPaveText(.73,.62,0.98,0.74,"NDC");
-  fe[i]->AddText("E Det Evnt (1st 0.3 s):");
-  fe[i]->AddText(eastevntf);
-  fe[i]->SetTextSize(0.04);
-  fe[i]->Draw();
-  lastfive[i]->Update();
-  lastfive[i]->cd(4);
-  hFirstFiveWest[i]->Draw("hist");
-  hFirstFiveWest[i]->GetXaxis()->SetTitle("Time (sec)");
-  hFirstFiveWest[i]->GetXaxis()->CenterTitle();
-  sprintf(westevntf,"%.1f",SumFirstPThreeW[i]);
-  fw[i] = new TPaveText(.73,.62,0.98,0.74,"NDC");
-  fw[i]->AddText("W Det Evnt (1st 0.3 s):");
-  fw[i]->AddText(westevntf);
-  fw[i]->SetTextSize(0.04);
-  fw[i]->Draw();*/
   }
 
+  delete hLastFiveEast;
+  delete hLastFiveWest;
+  delete hFirstFiveEast;
+  delete hFirstFiveWest;
+ 
   for(Int_t k = 0; k < nbck; k++){
   sprintf(hnamebkgeast,"hLstFiveBkgEst%d",k);
   sprintf(htitlebkgeast,"LstFiveSecBkgEst%d",k);
@@ -2447,56 +2389,12 @@ void Collect_Octets()
   SumFirstPThreeWBkg[k] = hFirstFiveBkgWest[k]->Integral(lowbinwestbkgf[k],highbinwestbkgf[k]);
   SumFirstFiveEBkg[k] = hFirstFiveBkgEast[k]->Integral(lowbineastbkgf[k],highbinebkgf[k]);
   SumFirstFiveWBkg[k] = hFirstFiveBkgWest[k]->Integral(lowbinwestbkgf[k],highbinwbkgf[k]);
-  /*sprintf(ftitle,"output_files/lastfive%d.pdf",k);
-  lastfive[k]->Update();
-  lastfive[k]->cd(5);
-  hLastFiveBkgEast[k]->SetLineColor(6);
-  hLastFiveBkgEast[k]->Draw("hist");
-  hLastFiveBkgEast[k]->GetXaxis()->SetTitle("Time (sec)");
-  hLastFiveBkgEast[k]->GetXaxis()->CenterTitle();
-  sprintf(eastevntbkg,"%.1f",SumLastPThreeEBkg[k]);
-  leb[k] = new TPaveText(.73,.62,0.98,0.74,"NDC");
-  leb[k]->AddText("E Det Bkg Evnt (last 0.3 s):");
-  leb[k]->AddText(eastevntbkg);
-  leb[k]->Draw();
-  lastfive[k]->Update();
-  lastfive[k]->cd(6);
-  hLastFiveBkgWest[k]->SetLineColor(6);
-  hLastFiveBkgWest[k]->Draw("hist");
-  hLastFiveBkgWest[k]->GetXaxis()->SetTitle("Time (sec)");
-  hLastFiveBkgWest[k]->GetXaxis()->CenterTitle();
-  sprintf(westevntbkg,"%.1f",SumLastPThreeWBkg[k]);
-  lwb[k] = new TPaveText(.73,.62,0.98,0.74,"NDC");
-  lwb[k]->AddText("W Det Bkg Evnt (last 0.3 s):");
-  lwb[k]->AddText(westevntbkg);
-  lwb[k]->SetTextSize(0.04);
-  lwb[k]->Draw();
-  lastfive[k]->Update();
-  lastfive[k]->cd(7);
-  hFirstFiveBkgEast[k]->SetLineColor(6);
-  hFirstFiveBkgEast[k]->Draw("hist");
-  hFirstFiveBkgEast[k]->GetXaxis()->SetTitle("Time (sec)");
-  hFirstFiveBkgEast[k]->GetXaxis()->CenterTitle();
-  sprintf(eastevntbkgf,"%.1f",SumFirstPThreeEBkg[k]);
-  feb[k] = new TPaveText(.73,.62,0.98,0.74,"NDC");
-  feb[k]->AddText("E Det Bkg Evnt (1st 0.3 s):");
-  feb[k]->AddText(eastevntbkgf);
-  feb[k]->SetTextSize(0.04);
-  feb[k]->Draw();
-  lastfive[k]->Update();
-  lastfive[k]->cd(8);
-  hFirstFiveBkgWest[k]->SetLineColor(6);
-  hFirstFiveBkgWest[k]->Draw("hist");
-  hFirstFiveBkgWest[k]->GetXaxis()->SetTitle("Time (sec)");
-  hFirstFiveBkgWest[k]->GetXaxis()->CenterTitle();
-  sprintf(westevntbkgf,"%.1f",SumFirstPThreeWBkg[k]);
-  fwb[k] = new TPaveText(.73,.62,0.98,0.74,"NDC");
-  fwb[k]->AddText("W Det Bkg Evnt (1st 0.3 s):");
-  fwb[k]->AddText(westevntbkgf);
-  fwb[k]->SetTextSize(0.04);
-  fwb[k]->Draw();
-  lastfive[k]->Print(ftitle);*/
   }
+
+  delete hLastFiveBkgEast;
+  delete hLastFiveBkgWest;
+  delete hFirstFiveBkgEast;
+  delete hFirstFiveBkgWest; 
 
   for(Int_t i = 0; i < nbeta; i++) {
   hFirstPThreeE->Fill(SumFirstPThreeE[i]);
@@ -2519,17 +2417,7 @@ void Collect_Octets()
   hLastFiveEBkg->Fill(SumLastFiveEBkg[k]);
   hLastFiveWBkg->Fill(SumLastFiveWBkg[k]);
   }
-/*
-  delete *SumFirstPThreeE; delete *SumFirstPThreeW;
-  delete *SumLastPThreeE; delete *SumLastPThreeW;
-  delete *SumFirstFiveE; delete *SumFirstFiveW;
-  delete *SumLastFiveE; delete *SumLastFiveW;
 
-  delete[] *SumFirstPThreeEBkg; delete[] *SumFirstPThreeWBkg;
-  delete[] *SumLastPThreeEBkg; delete[] *SumLastPThreeWBkg;
-  delete[] *SumFirstFiveEBkg; delete[] *SumFirstFiveWBkg;
-  delete[] *SumLastFiveEBkg; delete[] *SumLastFiveWBkg;
-*/
   TCanvas *pthreef = new TCanvas("pthreef", "pthreef",10,10,600,600);
   pthreef->Divide(2,2);
   pthreef->cd(1);
@@ -2749,7 +2637,7 @@ void Collect_Octets()
   TSIMWP[2*i] = LFWSIMPMax[2*i] - FFWSIMPMin[2*i];
   TSIMEP[2*i] = LFESIMPMax[2*i] - FFESIMPMin[2*i];
   TSIMWL[2*i+1] = LFWSIMLMax[2*i+1] - FFWSIMLMin[2*i+1];
-  TSIMEL[2*i+1] = LFESIMLMax[2*i+1] - FFESIMLMin[2*i+1];
+  TSIMEL[2*i+1] = LFESIMLMax[2*i+1] - FFESIMLMin[2*i+1];  
   SupSIM[i] = (TSIMEP[2*i]*TSIMWL[2*i+1])/(TSIMWP[2*i]*TSIMEL[2*i+1]) - 1.0;
   hSupsim->Fill(SupSIM[i]);
   }
@@ -2966,11 +2854,11 @@ void Collect_Octets()
   for(Int_t j = 0; j < SumLastFiveWS[2*i+1]; j++) {
   LastFiveWSIMLS = rtest->Uniform(3595,3600);
   if (LastFiveWSIMLS > LFWSIMLMaxs[2*i+1]) LFWSIMLMaxs[2*i+1] = LastFiveWSIMLS;
-  }
+  } 
   TSIMWPS[2*i] = LFWSIMPMaxs[2*i] - FFWSIMPMins[2*i];
   TSIMEPS[2*i] = LFESIMPMaxs[2*i] - FFESIMPMins[2*i];
   TSIMWLS[2*i+1] = LFWSIMLMaxs[2*i+1] - FFWSIMLMins[2*i+1];
-  TSIMELS[2*i+1] = LFESIMLMaxs[2*i+1] - FFESIMLMins[2*i+1];
+  TSIMELS[2*i+1] = LFESIMLMaxs[2*i+1] - FFESIMLMins[2*i+1];  
   SupSIMS[i] = (TSIMEPS[2*i]*TSIMWLS[2*i+1])/(TSIMWPS[2*i]*TSIMELS[2*i+1]) - 1.0;
   hSupsims->Fill(SupSIMS[i]);
   }
@@ -4360,24 +4248,32 @@ void Collect_23Anode()
 void Collect_Stuff()
 {
 
-  TCanvas *cStN = new TCanvas("cStN","Signal To Noise");
-  cStN->cd(0);
   Double_t xS2N[MAXRUNS],yS2N[MAXRUNS],yS2Nw[MAXRUNS];
-  
+  Int_t cC=0;
   
   for(int i = 0 ; i < nbeta ; i++){
     btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);
-       xS2N[i] = btr[i]->GetRunNumber();
-       yS2N[i] = btr[i]->E_Sig_Nos;
-       yS2Nw[i] = btr[i]->W_Sig_Nos;
+    if(btr[i]->E_Sig_Nos<100000){
+       xS2N[cC] = btr[i]->GetRunNumber();
+       yS2N[cC] = btr[i]->E_Sig_Nos;
+       yS2Nw[cC] = btr[i]->W_Sig_Nos;
+       cC++;
+    }
+    //   cout << "Run/E/W_Sig_Nos " << i << " " << xS2N[i] << " " << yS2N[i] << " " << yS2Nw[i] << endl;
+
     btr[i]->Remove_Histograms(bckr[btr[i]->Bkg_index]);
   }
-  
-  TGraph *gS2Ne = new TGraph(nbeta,xS2N,yS2N);
+ 
+  cout << "nbeta " << nbeta << endl;
+ 
+  TGraph *gS2Ne = new TGraph(cC,xS2N,yS2N);
   ColorGraphic(gS2Ne,2,20,2);
-  TGraph *gS2Nw = new TGraph(nbeta,xS2N,yS2Nw);
+  //TGraph *gS2Nw = new TGraph(nbeta,xS2N,yS2Nw);
+  TGraph *gS2Nw = new TGraph(cC,xS2N,yS2Nw);
   ColorGraphic(gS2Nw,4,20,2);
   
+  TCanvas *cStN = new TCanvas("cStN","Signal To Noise");
+  cStN->cd(0);
   gS2Ne->Draw("AP");
   gS2Ne->GetXaxis()->SetTitle("Run Number");
   gS2Ne->GetYaxis()->SetTitle("S/N");
@@ -4628,39 +4524,71 @@ void Collect_Energy_Spectra()
   TLegend *legSpc12 = new TLegend();
 
     btr[3]->Load_Histograms(bckr[btr[3]->Bkg_index],0);
+    btr[3]->GetEnergyChi();
+    c1bk->cd(1);
   DrawEnerPanel(hWFlipperOff  ,btr[3]->hEERef , c1bk,1,legSpc1,west_time_off);
+  c1bk->Print("output_files/e_spec_compares_w0.pdf");
+    c1bk->cd(2);
   DrawEnerPanel(hWFlipperOff_I,btr[3]->hEERef1, c1bk,2,legSpc2,west_time_off);
+  c1bk->Print("output_files/e_spec_compares_w1.pdf");
+    c1bk->cd(3);
   DrawEnerPanel(hWFlipperOff_2,btr[3]->hEERef2, c1bk,3,legSpc3,west_time_off);
+  c1bk->Print("output_files/e_spec_compares_w23.pdf");
     btr[3]->Remove_Histograms(bckr[btr[3]->Bkg_index]);
     btr[4]->Load_Histograms(bckr[btr[4]->Bkg_index],0);
+    btr[4]->GetEnergyChi();
+    c1bk->cd(4);
   DrawEnerPanel(hWFlipperOn   ,btr[4]->hEERef , c1bk,4,legSpc4,west_time_on);
+  c1bk->Print("output_files/e_spec_compares_w0f.pdf");
+    c1bk->cd(5);
   DrawEnerPanel(hWFlipperOn_I ,btr[4]->hEERef1, c1bk,5,legSpc5,west_time_on);
+  c1bk->Print("output_files/e_spec_compares_w1f.pdf");
+    c1bk->cd(6);
   DrawEnerPanel(hWFlipperOn_2 ,btr[4]->hEERef2, c1bk,6,legSpc6,west_time_on);
+  c1bk->Print("output_files/e_spec_compares_w23f.pdf");
     btr[4]->Remove_Histograms(bckr[btr[4]->Bkg_index]);
     btr[5]->Load_Histograms(bckr[btr[5]->Bkg_index],0);
+    btr[5]->GetEnergyChi();
+    c1bk->cd(7);
   DrawEnerPanel(hEFlipperOff  ,btr[5]->hEERef , c1bk,7,legSpc7,east_time_off);
+  c1bk->Print("output_files/e_spec_compares_e0.pdf");
+    c1bk->cd(8);
   DrawEnerPanel(hEFlipperOff_I,btr[5]->hEERef1, c1bk,8,legSpc8,east_time_off);
+  c1bk->Print("output_files/e_spec_compares_e1.pdf");
+    c1bk->cd(9);
   DrawEnerPanel(hEFlipperOff_2,btr[5]->hEERef2, c1bk,9,legSpc9,east_time_off);
+  c1bk->Print("output_files/e_spec_compares_e23.pdf");
     btr[5]->Remove_Histograms(bckr[btr[5]->Bkg_index]);
     btr[6]->Load_Histograms(bckr[btr[6]->Bkg_index],0);
+    btr[6]->GetEnergyChi();
+    c1bk->cd(10);
   DrawEnerPanel(hEFlipperOn   ,btr[6]->hEERef , c1bk,10,legSpc10,east_time_on);
+  c1bk->Print("output_files/e_spec_compares_e0f.pdf");
+    c1bk->cd(11);
   DrawEnerPanel(hEFlipperOn_I ,btr[6]->hEERef1, c1bk,11,legSpc11,east_time_on);
+  c1bk->Print("output_files/e_spec_compares_e1f.pdf");
+    c1bk->cd(12);
   DrawEnerPanel(hEFlipperOn_2 ,btr[6]->hEERef2, c1bk,12,legSpc12,east_time_on);
+  c1bk->Print("output_files/e_spec_compares_e23f.pdf");
     btr[6]->Remove_Histograms(bckr[btr[6]->Bkg_index]);
- 
+
+  c1bk->Print("output_files/e_spec_compares.pdf");
+
+/*    btr[1]->Load_Histograms(bckr[btr[1]->Bkg_index],0);
+    btr[1]->GetEnergyChi();
+  btr[1]->hEERef->Scale(hEFlipperOn->Integral(1,80)/btr[1]->hEERef->Integral(1,80));
+  btr[1]->hEERef1->Scale(1./btr[1]->hEERef1->Integral(1,80));
+  btr[1]->hEERef2->Scale(1./btr[1]->hEERef2->Integral(1,80));
+    btr[1]->Remove_Histograms(bckr[btr[1]->Bkg_index]);
+*/
+  cout << " Filled Reference Histograms " << endl;
+
+
   delete legSpc1;  delete legSpc2;  delete legSpc3;  delete legSpc4;
   delete legSpc5;  delete legSpc6;  delete legSpc7;  delete legSpc8;
   delete legSpc9;  delete legSpc10;  delete legSpc11;  delete legSpc12;
  
-    btr[1]->Load_Histograms(bckr[btr[1]->Bkg_index],0);
-  btr[1]->hEERef->Scale(hEFlipperOn->Integral(1,80)/btr[1]->hEERef->Integral(1,80));
-  btr[1]->hEERef1->Scale(1./btr[1]->hEERef1->Integral(1,80));
-  btr[1]->hEERef2->Scale(1./btr[1]->hEERef2->Integral(1,80));
-
-    btr[1]->Remove_Histograms(bckr[btr[1]->Bkg_index]);
-
-  c1bk->Print("output_files/e_spec_compares.pdf");
-
+//    btr[1]->Load_Histograms(bckr[btr[1]->Bkg_index],0);
 //   TCanvas *cTot = new TCanvas("cTot","Total Rates");
 //   cTot->Divide(3,4);
 //   // Draw the averaged energy spectra from monte carlo and data......
@@ -4716,11 +4644,15 @@ void Collect_Energy_Spectra()
   }
 
     btr[1]->Load_Histograms(bckr[btr[1]->Bkg_index],0);
+    btr[1]->GetEnergyChi();
+    btr[1]->hEERef->Scale(hEFlipperOn->Integral(1,80)/btr[1]->hEERef->Integral(1,80));
+    btr[1]->hEERef1->Scale(1./btr[1]->hEERef1->Integral(1,80));
+    btr[1]->hEERef2->Scale(1./btr[1]->hEERef2->Integral(1,80));
    for(Int_t i = 0 ; i < 80 ; i++){
    	if(hEFlipperOn->GetBinError(i+1) > 0)
     		chiE0on[i] = Power((hEFlipperOn->GetBinContent(i+1) -
 				  btr[1]->hEERef->GetBinContent(i+1))/
-				  hEFlipperOn->GetBinError(i+1),1);			 
+				  hEFlipperOn->GetBinError(i+1),1);
 	if(hEFlipperOn_I->GetBinError(i+1) > 0)
    		chiE1on[i]  = Power((hEFlipperOn_I->GetBinContent(i+1) -
 				btr[1]->hEERef1->GetBinContent(i+1))/
@@ -5543,9 +5475,9 @@ void Collect_TDCDiff()
 {
   
   TH1F *hTDCDiffTot_On  = new TH1F("hTDCDiffTot_On","#Delta TDC Flipper On;Counts; TDCE-TDCW"
-				   ,2000,-200,800);
+				   ,2000,-200,1800);
   TH1F *hTDCDiffTot_Off = new TH1F("hTDCDiffTot_Off","#Delta TDC Flipper Off;Counts; TDCE-TDCW"
-				   ,2000,-200,800);
+				   ,2000,-200,1800);
   
   for(Int_t i = 0 ; i < nbeta ;i++){
     btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],0);

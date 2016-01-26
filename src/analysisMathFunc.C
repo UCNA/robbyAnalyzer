@@ -632,10 +632,10 @@ void DrawEnerPanel(TH1F *hData,TH1F *hMC,TCanvas *c,Int_t npad,TLegend *lleg,Dou
 
   Int_t nt = (npad % 3)-1;
   if(nt ==-1) nt = 2;
-  c->cd(npad);
+//  c->cd(npad);
   hData->GetXaxis()->SetRangeUser(0,1000);
 
-  std::cout << " Events in hData/hMC " << hData->GetEntries() << " " << hMC->GetEntries() << std::endl;
+//  std::cout << " Events in hData/hMC " << hData->GetEntries() << " " << hMC->GetEntries() << std::endl;
 
   hMC->Scale(hData->Integral(1,20)/hMC->Integral(1,20));
   //  Double_t chi = hData->Chi2Test(hMC,"WW P");

@@ -55,6 +55,7 @@ Int_t Bck_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
   //cout << "run num = " << GetRunNumber() << endl;
   if(remake == 1 || !AnalysisDirExist){
     Initialize_hist(0,1,1);
+    cout << "Reading " << Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun) << endl;
     TFile *f2 = new TFile(Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ"); 
     hmrIn = (TH1F*) f2->Get("UCN_Mon_4_Rate");
     for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){

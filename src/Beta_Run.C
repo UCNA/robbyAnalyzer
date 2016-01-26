@@ -77,6 +77,7 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
   if(remake == 1 || !AnalysisDirExist){
     Initialize_hist(0,1,1);
     TFile *f2 = new TFile(Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ");
+    cout << "Reading " << Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun) << endl;
     hmrIn = (TH1F*)f2->Get("UCN_Mon_4_Rate");
     for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){
         hmr1->Fill(hmrIn->GetBinCenter(MRbin),hmrIn->GetBinContent(MRbin));
@@ -271,7 +272,7 @@ Int_t Beta_Run::SubBck(Bck_Run *br)
    
   E_Sig_Nos = heq->Integral(nlow,nhigh)/br->heq->Integral(nlow,nhigh);
   W_Sig_Nos = hwq->Integral(nlow,nhigh)/br->hwq->Integral(nlow,nhigh);
-  
+ 
   hESigNos->Divide(br->heq);
   hWSigNos->Divide(br->hwq);
   
@@ -536,7 +537,7 @@ Double_t Beta_Run::GetEnergyChi()
      hEERef1->SetBinContent(ibin,temp3);
      hEERef2->SetBinContent(ibin,temp4);
 
-	cout << ibin << "th Bin, contents " << temp2 << " " << temp3 << " " << temp4 << endl;
+//	cout << ibin << "th Bin, contents " << temp2 << " " << temp3 << " " << temp4 << endl;
 
      ibin++;
   }while(ibin < 101);
