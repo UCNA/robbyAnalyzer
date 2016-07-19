@@ -46,9 +46,11 @@
 #define ESCALE 2000.
 #define EBINS  200
 #define RAD  50.
-#define nlow 23
+#define nlow 23  // MPM Analyzer
+//#define nlow 21  // UK Analyzer
 #define Acut 4.14
-#define nhigh 67
+#define nhigh 67  // MPM Analyzer
+//#define nhigh 60    // UK Analyzer
 #define TDC0 150. // Define Renormalize cut position
 #define fTDC_Max 150.
 
@@ -80,7 +82,7 @@ class Run {
     Bool_t           TaggedBackW;
     Bool_t           TaggedDriftW;
     Bool_t           EvnbGood;
-    Bool_t           BkhfGood;  */
+    Bool_t           BkhfGood;   */
     
     Float_t         eastX[16];
     Float_t         eastY[16];

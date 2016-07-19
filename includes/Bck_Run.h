@@ -16,7 +16,7 @@ class Bck_Run : public Run {
     Int_t stuff;
     Bool_t Check_Vetos();
     void Remove_Histograms();
-    void Load_Histograms();
+    void Load_Histograms(Int_t run);
     
 };
 #endif

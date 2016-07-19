@@ -37,7 +37,7 @@ class Beta_Run : public Run {
     Int_t    GetSimpleAsym();
     Double_t GetEnergyChi();
     Int_t    Make_Kurie();
-    void     Load_Histograms(Bck_Run *br,Bool_t SUBBCK);
+    void     Load_Histograms(Bck_Run *br,Bool_t SUBBCK, Int_t run);
     void     Remove_Histograms(Bck_Run *br);
     
 };
