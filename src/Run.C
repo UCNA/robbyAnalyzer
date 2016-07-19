@@ -172,6 +172,8 @@ void Run::DeleteHistos()
   delete xr; 
   delete hmr1;
   delete hCountTimeRecord;
+  
+  if(fHisto->IsOpen()) fHisto->Close();
 }
 
 Bool_t Run::OpenRun(Int_t n)
@@ -182,6 +184,7 @@ Bool_t Run::OpenRun(Int_t n)
   cout << "Attempting to open run spec_"<< n << ".root" << endl;
   f1     = new TFile(Form("%s/hists/spec_%d.root",filepath,n),"READ");
   //fHisto = new TFile(Form("%s/hists/hists_%d.root",filepath,n),"UPDATE");
+//  if(fHisto->IsOpen()) fHisto->Close();
   fHisto = new TFile(Form("/home/jwwexler/robbyWork/histOut/hists_%d.root",n),"UPDATE");
   
   AnalysisDirExist = kFALSE;
@@ -1300,12 +1303,16 @@ Int_t Run::SaveHistograms(Bool_t SAVE)
   }
   f1->Close("R");
   delete f1;
+//  delete fHisto;
   return -1;
 
 }
 //---------------------------------------------------------------------------------------
 Int_t Run::GetHistograms(Int_t dunce)
 {
+//  cout << "GetHistograms run in " << dunce << endl;
+//  cout << Form("/home/jwwexler/robbyWork/histOut/hists_%d.root",dunce) << endl;
+  if(!(fHisto->IsOpen())) fHisto = new TFile(Form("/home/jwwexler/robbyWork/histOut/hists_%i.root",dunce),"UPDATE");
   fHisto->cd(Form("%s_Analysis_%d_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated));
   xr = new TRandom3();
   hpe          = (TH2F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hpe_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));

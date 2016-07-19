@@ -26,9 +26,11 @@ Int_t Bck_Run::Draw_2d(Int_t nr,Int_t n)
 
 }
 
-void Bck_Run::Load_Histograms()
+void Bck_Run::Load_Histograms(Int_t run=0)
 {
-     this->GetHistograms(0);
+     run=this->GetRunNumber();
+     //cout << "Load_Histograms Run " << run << endl;
+     this->GetHistograms(run);
      this->ScaleList(this->HEastAn,this->rtime_e);
      this->ScaleList(this->HWestAn,this->rtime_w);
 }
@@ -57,12 +59,12 @@ Int_t Bck_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
     Initialize_hist(0,1,1);
     cout << "Reading " << Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun) << endl;
     TFile *f2 = new TFile(Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ"); 
-    hmrIn = (TH1F*) f2->Get("UCN_Mon_4_Rate");
+/*    hmrIn = (TH1F*) f2->Get("UCN_Mon_4_Rate");
     for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){
 	hmr1->Fill(hmrIn->GetBinCenter(MRbin),hmrIn->GetBinContent(MRbin));
     }
     delete hmrIn; 
-    f2->Close();
+*/    f2->Close();
     //cout << "run num = " << GetRunNumber() << endl;
     for(Int_t i = 0 ; i < t1->GetEntries() ; i++){
 
@@ -94,7 +96,9 @@ Int_t Bck_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
     }
     SaveHistograms(kTRUE);
   } else if(remake == 0){
-    GetHistograms(0);
+    //GetHistograms(0);
+    //cout << "Initializing Open Run num " << GetRunNumber() << endl;
+    GetHistograms(GetRunNumber());
     if(GetGeo() ==1){    
       rtime_e = rtime_e*(hGammaCountsg->GetBinContent(1))/(hGammaCounts->GetBinContent(1)); 
       rtime_w = rtime_w*(hGammaCountsg->GetBinContent(2))/(hGammaCounts->GetBinContent(2)); 

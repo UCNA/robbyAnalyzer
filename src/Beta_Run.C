@@ -27,14 +27,17 @@ Beta_Run::~Beta_Run()
 
 }
 
-void Beta_Run::Load_Histograms(Bck_Run *br,Bool_t SUBBCK)
+void Beta_Run::Load_Histograms(Bck_Run *br,Bool_t SUBBCK,Int_t run=0)
 {
-     this->GetHistograms(0);
+     run=this->GetRunNumber();
+     //cout << "Load Histograms Run " << run << " " << br->GetRunNumber() << endl;
+     this->GetHistograms(run);
      this->ScaleList(this->HEastAn,this->rtime_e);
      this->ScaleList(this->HWestAn,this->rtime_w);
-     br->GetHistograms(0);
+     br->GetHistograms(br->GetRunNumber());
      br->ScaleList(br->HEastAn,br->rtime_e);
      br->ScaleList(br->HWestAn,br->rtime_w);
+     SUBBCK=kFALSE;
      if(SUBBCK)this->SubBck(br);
 
 }
@@ -77,13 +80,13 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
   if(remake == 1 || !AnalysisDirExist){
     Initialize_hist(0,1,1);
     TFile *f2 = new TFile(Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ");
-    cout << "Reading " << Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun) << endl;
-    hmrIn = (TH1F*)f2->Get("UCN_Mon_4_Rate");
+    //cout << "Reading " << Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun) << endl;
+/*    hmrIn = (TH1F*)f2->Get("UCN_Mon_4_Rate");
     for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){
         hmr1->Fill(hmrIn->GetBinCenter(MRbin),hmrIn->GetBinContent(MRbin));
     }
     delete hmrIn; 
-    f2->Close();
+*/    f2->Close();
 
     for(Int_t i = 0 ; i < t1->GetEntries() ; i++){ 
       t1->GetEntry(i);  // Get Enetry from the Tree;
@@ -122,7 +125,9 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
        
     SaveHistograms(kTRUE);
   } else if( remake == 0){
-    GetHistograms(0);
+    //GetHistograms(0);
+    //cout << "Initializing Open Run num " << GetRunNumber() << endl;
+    GetHistograms(GetRunNumber());
     if(GetRunNumber() == 9983){
       cout << "East live time uncorrected " << rtime_e << endl;
       cout << "West live time uncorrected " << rtime_w << endl;

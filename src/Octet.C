@@ -633,8 +633,10 @@ void Octet::Find_Runs(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bck,Int_t
    if(bta[i]->GetRunNumber() >= First && bta[i]->GetRunNumber() <= Last){
      if(bta[i]->GetRunNumber()==First) FirstRunIndex=First;
      // Start filling the run type histograms by comparing the octet type
-     bta[i]->Load_Histograms(bck[bta[i]->Bkg_index],kTRUE);
+     //cout << "Load histograms" << endl;
+     bta[i]->Load_Histograms(bck[bta[i]->Bkg_index],kTRUE,0);
      Int_t bkg_index = bta[i]->Bkg_index;
+     //cout << "After Load histograms" << endl;
      // Use TObjArrayIter's to loop over the analysis histograms
      TObjArrayIter FgEast(bta[i]->HEastAn);
      TObjArrayIter FgWest(bta[i]->HWestAn);

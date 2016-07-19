@@ -635,31 +635,38 @@ void DrawEnerPanel(TH1F *hData,TH1F *hMC,TCanvas *c,Int_t npad,TLegend *lleg,Dou
 //  c->cd(npad);
   hData->GetXaxis()->SetRangeUser(0,1000);
 
-//  std::cout << " Events in hData/hMC " << hData->GetEntries() << " " << hMC->GetEntries() << std::endl;
+//  std::cout << " hData Events " << hData->GetEntries() << ". Events in hData/hMC 1st-20 bins" << hData->Integral(15,20) << " " << hMC->Integral(15,20);
+//  std::cout << " hData_Bin1 " << hData->GetBinContent(15) << " Bin20 " << hData->GetBinContent(20) << " GetBinCenteR_1 " << hData->GetBinCenter(15) << " ";
 
-  hMC->Scale(hData->Integral(1,20)/hMC->Integral(1,20));
+  hMC->Scale(hData->Integral(15,20)/hMC->Integral(15,20));
   //  Double_t chi = hData->Chi2Test(hMC,"WW P");
   vector<Double_t> diff;
   Double_t chi2  = 0;
   Int_t goodbins = 0;
-  for(Int_t i = 1 ; i<= 32;i++){
-    diff.push_back(TMath::Abs(hData->Integral(1,i) - hMC->Integral(1,i)));
+  for(Int_t i = 15 ; i<= 32;i++){
+    diff.push_back(TMath::Abs(hData->Integral(15,i) - hMC->Integral(15,i)));
+
     if(hData->GetBinContent(i)!=0){
       double n1 = hData->GetBinContent(i);
       double n2 = hMC->GetBinContent(i);
     //  double MM = hMC->Integral(1,32);
     //  double NN = hData->Integral(1,32);
       double s1 = hData->GetBinError(i);
+//    std::cout << i << "th bin contents " << n1 << " " << n2 << " " << s1 << std::endl;
      // double s2 = hMC->GetBinError(i);
       chi2 += TMath::Power((n1-n2)/s1,2);
       goodbins++;
     }
   }
   chi2 *= 1./(double)goodbins;
-  Double_t n = hData->Integral(1,32);
+//  std::cout << ", Chi2 " << chi2 << std::endl;
+  
+  hMC->Draw("");
+/*  Double_t n = hData->Integral(1,32);
   Double_t np = hMC->Integral(1,32);
   Double_t dnnp = *max_element(diff.begin(),diff.end());
   dnnp *= sqrt((n*np)/(n+np));
+    std::cout << "contents " << n << " " << np << " " << dnnp << std::endl;
   hData->Draw("X0 E0 P0");
   hMC->Draw("same hist");
   lleg = new TLegend(0.55,0.6,0.89,0.89);
@@ -671,6 +678,7 @@ void DrawEnerPanel(TH1F *hData,TH1F *hMC,TCanvas *c,Int_t npad,TLegend *lleg,Dou
   lleg->AddEntry(hMC,Form("K-test   : %5.3f",1-dnnp),"");
   lleg->AddEntry(hMC,Form("#chi/#nu : %5.3f",chi2),"");
   lleg->Draw();
+*/
 };
 
 
