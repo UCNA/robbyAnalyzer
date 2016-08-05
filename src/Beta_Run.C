@@ -37,7 +37,7 @@ void Beta_Run::Load_Histograms(Bck_Run *br,Bool_t SUBBCK,Int_t run=0)
      br->GetHistograms(br->GetRunNumber());
      br->ScaleList(br->HEastAn,br->rtime_e);
      br->ScaleList(br->HWestAn,br->rtime_w);
-     SUBBCK=kFALSE;
+//     SUBBCK=kFALSE;
      if(SUBBCK)this->SubBck(br);
 
 }
@@ -81,12 +81,12 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
     Initialize_hist(0,1,1);
     TFile *f2 = new TFile(Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ");
     //cout << "Reading " << Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun) << endl;
-/*    hmrIn = (TH1F*)f2->Get("UCN_Mon_4_Rate");
+    hmrIn = (TH1F*)f2->Get("UCN_Mon_4_Rate");
     for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){
-        hmr1->Fill(hmrIn->GetBinCenter(MRbin),hmrIn->GetBinContent(MRbin));
+     hmr1->Fill(hmrIn->GetBinCenter(MRbin),hmrIn->GetBinContent(MRbin));
     }
     delete hmrIn; 
-*/    f2->Close();
+    f2->Close();
 
     for(Int_t i = 0 ; i < t1->GetEntries() ; i++){ 
       t1->GetEntry(i);  // Get Enetry from the Tree;

@@ -59,19 +59,25 @@ void Average_Array_Vector(Asym_t A,Int_t n, Double_t &y_Average,Double_t &y_Aver
   //
 
   Double_t ytemp   = 0.;
-  Double_t ytemper = 0.;
+  Double_t ytemper = 1.;
+
+  Double_t counts=0;
 
   for(Int_t j = 0 ; j < n ; j++){
     Double_t x   = A.A_ave[j];
     Double_t xer = A.A_error[j];
     if(!(TMath::IsNaN(x)) && xer > 0 && xer != 1){
+//     if(TMath::IsNaN(x) || TMath::IsNaN(xer)) std::cout << x << " " << xer << std::endl;
           ytemp    += x / TMath::Power(xer,2);
           ytemper  += 1./TMath::Power(xer,2);
+          counts++;
     }
   }
 
   y_Average    = ytemp/ytemper;  // Error weighted Average of the Array passed
   y_Average_er = sqrt(1./ytemper);
+
+//  std::cout << "Integrated " << counts << " " << y_Average << " " << y_Average_er << std::endl;
 
   return;
 }

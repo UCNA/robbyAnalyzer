@@ -186,6 +186,8 @@ Double_t Octet::Calc_A_multi()
     RA3 = ( RA3 != 0 ) ? RA3 : 1.;
     RA4 = ( RA4 != 0 ) ? RA4 : 1.;
     
+//    cout << "Output Err Sum " << ersumA << " " << erA1 << " " << erA2 << " " << erA3 << " " << erA4 << " " << erA5 << " " << erA6 << " " << erA7 << " " << erA8 << endl;
+//    cout << "nA2[j] = " << nA2[j] << " " << nA2b[j] << " " << tA2 <<" " << tA2b << endl;
     erA1 = (nA2[j]   != 1.) ? ErrorMultiRate(nA2[j],nA2b[j],tA2,tA2b) : 0;
     erA2 = (nA5[j]   != 1.) ? ErrorMultiRate(nA5[j],nA5b[j],tA5,tA5b) : 0;
     erA3 = (nA7[j]   != 1.) ? ErrorMultiRate(nA7[j],nA7b[j],tA7,tA7b) : 0;
@@ -195,7 +197,7 @@ Double_t Octet::Calc_A_multi()
     erA6 = (nA5w[j]  != 1.) ? ErrorMultiRate(nA5w[j],nA5bw[j],tA5w,tA5bw) : 0;
     erA7 = (nA7w[j]  != 1.) ? ErrorMultiRate(nA7w[j],nA7bw[j],tA7w,tA7bw) : 0;
     erA8 = (nA10w[j] != 1.) ? ErrorMultiRate(nA10w[j],nA10bw[j],tA10w,tA10bw) : 0;
-      
+    
     ersumA = Power(erA1/nA2[j],2) + Power(erA2/nA5[j],2) + Power(erA3/nA7[j],2) + Power(erA4/nA10[j],2) 
            + Power(erA5/nA2w[j],2) + Power(erA6/nA5w[j],2) + Power(erA7/nA7w[j],2) + Power(erA8/nA10w[j],2); 
     
@@ -275,7 +277,9 @@ Double_t Octet::Calc_A_multi()
     
     A_multi[j] = (1. - RR)/(1. + RR);
     A_multier[j] = (2./pow)*(RR/Power((1.+ RR),2))*sqrt(ersumB + ersumA);
-    
+   
+    //cout << "OctetFill " << RR << " " << A_multi[j] << " " << A_multier[j] << " " << ersumB << " " << ersumA << endl;
+ 
     pow = 0.;
   }
   
@@ -652,6 +656,7 @@ void Octet::Find_Runs(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bck,Int_t
        for(Int_t j = 0 ; j < 9 ; j++){
 	  Int_t nlast = 7;
 	  if(j == 8)nlast = 8;
+//          cout << "Fill time " << bta[i]->btime_e << " " << tA2b << " " << bck[bkg_index]->rtime_e << endl;
 	  Fill(hA2[j] ,(TH1F*)FgEast.Next(),bta[i]->rtime_e, &tA2,nlast);
 	  Fill(hA2w[j],(TH1F*)FgWest.Next(),bta[i]->rtime_w, &tA2w,nlast);
 	  Fill(hA1[j] ,(TH1F*)BkEast.Next(),bta[i]->btime_e, &tA2b,nlast);
@@ -724,7 +729,7 @@ void Octet::Find_Runs(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bck,Int_t
 	  Fill(hA9[j] ,(TH1F*)BkEast.Next(),bta[i]->btime_e, &tA7b,nlast);
 	  Fill(hA9w[j],(TH1F*)BkWest.Next(),bta[i]->btime_w, &tA7bw,nlast);
        }
-        for(Int_t j = 0 ; j < 9 ; j++){
+       for(Int_t j = 0 ; j < 9 ; j++){
 	 nA7b[j] = bta[i]->BkgRtE[j];
 	 nA7bw[j] = bta[i]->BkgRtW[j];
        }

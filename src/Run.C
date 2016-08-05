@@ -55,22 +55,22 @@ void Run::DeleteHistos()
   delete hpw;
   delete heq;
   delete hwq;
-//  delete heqB;
+  delete heqB;  // X
   delete heqC;
-//  delete heqD;
+  delete heqD; //X
   delete heqE;
   delete heqF;
   delete heqG;
-//  delete heqH;
-//  delete heqI;
-//  delete hwqB;
+  delete heqH; //x
+  delete heqI; //x
+  delete hwqB; //x
   delete hwqC;
-//  delete hwqD;
+  delete hwqD; //x
   delete hwqE;
   delete hwqF;
   delete hwqG;
-//  delete hwqH;
-//  delete hwqI;
+  delete hwqH; //x
+  delete hwqI;  //x
   for(Int_t i = 0 ; i < 10 ; i++){
     delete hEHC[i];
     delete hWHC[i];
@@ -1376,22 +1376,28 @@ Int_t Run::GetHistograms(Int_t dunce)
   hw3         = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hw3_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hw4         = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hw4_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
 */
-//  hwqB        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqB_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-//  heqB        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqB_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+/*begin uncomment*/
+  hwqB        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqB_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  heqB        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqB_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+/*end*/
   hwqC        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqC_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   heqC        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqC_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-//  hwqD        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqD_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-//  heqD        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqD_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+/*begin uncomment*/
+  hwqD        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqD_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  heqD        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqD_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+/*end*/
   hwqE        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqE_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   heqE        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqE_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hwqF        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqF_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   heqF        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqF_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hwqG        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqG_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   heqG        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqG_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-//  hwqH        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqH_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-//  heqH        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqH_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-//  hwqI        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqI_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
-//  heqI        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqI_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+/*begin uncomment*/
+  hwqH        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqH_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  heqH        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqH_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  hwqI        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hwqI_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+  heqI        = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/heqI_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
+/*end*/
   hWmuon      = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hWmuon_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hEmuon      = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hEmuon_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
   hETDC_cor   = (TH1F*)fHisto->Get(Form("/%s_Analysis_%d_%d/hETDC_cor_%d",getenv("UCNA_ANA_AUTHOR"),(Int_t)RAD,rotated,runnum));
@@ -1439,14 +1445,14 @@ Int_t Run::GetHistograms(Int_t dunce)
 void Run::Assign_to_Hist_List()
 {
   HEastAn->Add(heq);
-//  HEastAn->Add(heqB);
+  HEastAn->Add(heqB); // Commented out
   HEastAn->Add(heqC);
-//  HEastAn->Add(heqD);
+  HEastAn->Add(heqD); // Commented out
   HEastAn->Add(heqE);
   HEastAn->Add(heqF);
   HEastAn->Add(heqG);
-//  HEastAn->Add(heqH);
-//  HEastAn->Add(heqI);
+  HEastAn->Add(heqH); // Commented out
+  HEastAn->Add(heqI); // Commented out
   HEastAn->Add(hpe);
   HEastAn->Add(hte);
 /*  HEastAn->Add(he4);
@@ -1472,14 +1478,14 @@ void Run::Assign_to_Hist_List()
   HEastAn->Add(hRoteI23);
   
   HWestAn->Add(hwq);
-//  HWestAn->Add(hwqB);
+  HWestAn->Add(hwqB); // Commented out
   HWestAn->Add(hwqC);
-//  HWestAn->Add(hwqD);
+  HWestAn->Add(hwqD); // Commented out
   HWestAn->Add(hwqE);
   HWestAn->Add(hwqF);
   HWestAn->Add(hwqG);
-//  HWestAn->Add(hwqH);
-//  HWestAn->Add(hwqI);
+  HWestAn->Add(hwqH); // Commented out
+  HWestAn->Add(hwqI); // Commented out
   HWestAn->Add(hpw);
   HWestAn->Add(htw);
 /*  HWestAn->Add(hw4);

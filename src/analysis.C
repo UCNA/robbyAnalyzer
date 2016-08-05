@@ -124,6 +124,7 @@ void CallAnalysisTasks()
         // hEType1_Primary/Secondary which are never filled in any 
         // legacy code...
   PlotRunTimes();                   
+
 }
 
 //---------------------------------------------------------------------------
@@ -139,7 +140,7 @@ Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nru
       bk[i]->Fill(i,remake,sep23,nrunl[i]);
       bk[i]->Scale2Time(1,1);
       bk[i]->Calculate_Backscatter(1,1);
-//      bk[i]->Diagnosis_Run();
+      bk[i]->Diagnosis_Run();
 /*
       bk[i]->CountTimeEFirst=bk[i]->hCountTimeRecord->GetBinContent(1);
       bk[i]->CountTimeEAll=bk[i]->hCountTimeRecord->GetBinContent(2);
@@ -149,7 +150,7 @@ Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nru
       bk[i]->CountTimeWAll=bk[i]->hCountTimeRecord->GetBinContent(6);
       bk[i]->CountTimeWFirstBeta=bk[i]->hCountTimeRecord->GetBinContent(7);
       bk[i]->CountTimeWBeta=bk[i]->hCountTimeRecord->GetBinContent(8);
-*/
+
 /*
       for(Int_t k=0; k<10000000000; k++){
 	if(bk[i]->hClockE->GetBinContent(k)==0 && bk[i]->hClockE->GetBinContent(k+1)==0) k=-1;
@@ -165,11 +166,11 @@ Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nru
       }
 */
       MonEventEnd=1; MonRateCounter=0;
-/*      for(Int_t binsIn = 0; binsIn < bk[i]->hmr1->GetNbinsX(); binsIn++){
+      for(Int_t binsIn = 0; binsIn < bk[i]->hmr1->GetNbinsX(); binsIn++){
 	MonRateCounter+=bk[i]->hmr1->GetBinContent(binsIn);
         if(MonEventEnd<bk[i]->hmr1->GetBinCenter(binsIn)&&bk[i]->hmr1->GetBinContent(binsIn)>0) MonEventEnd=binsIn;
       } 
-*/      bk[i]->Mon_Rate = MonRateCounter/MonEventEnd;
+      bk[i]->Mon_Rate = MonRateCounter/MonEventEnd;
     //fHisto->Close();
     bk[i]->DeleteHistos();
     }
@@ -189,7 +190,7 @@ Int_t analyze_beta_runs(Int_t n, std::vector<Beta_Run*>bta,vector<Int_t> nrunl,I
       bta[i]->Draw_2d(nrunl[i],i);
       bta[i]->Fill(i,remake,sep23,nrunl[i]);
       bta[i]->Scale2Time(1,1);
-//      bta[i]->Diagnosis_Run();
+      bta[i]->Diagnosis_Run();
 /*
       bta[i]->CountTimeEFirst=bta[i]->hCountTimeRecord->GetBinContent(1);
       bta[i]->CountTimeEAll=bta[i]->hCountTimeRecord->GetBinContent(2);
@@ -211,11 +212,11 @@ Int_t analyze_beta_runs(Int_t n, std::vector<Beta_Run*>bta,vector<Int_t> nrunl,I
       }
 */
       MonEventEnd=1; MonRateCounter=0;
-/*      for(Int_t binsIn = 0; binsIn < bta[i]->hmr1->GetNbinsX(); binsIn++){
+      for(Int_t binsIn = 0; binsIn < bta[i]->hmr1->GetNbinsX(); binsIn++){
 	MonRateCounter+=bta[i]->hmr1->GetBinContent(binsIn);
         if(MonEventEnd<bta[i]->hmr1->GetBinCenter(binsIn)&&bta[i]->hmr1->GetBinContent(binsIn)>0) MonEventEnd=bta[i]->hmr1->GetBinCenter(binsIn);
       }  
-*/      bta[i]->Mon_Rate = MonRateCounter/MonEventEnd;
+      bta[i]->Mon_Rate = MonRateCounter/MonEventEnd;
 
     bta[i]->DeleteHistos();
     }
@@ -2291,14 +2292,11 @@ void Collect_Octets()
       Fill_Asymmetry_Vector(A_super,octet[i]->Bsuper2[2],octet[i]->Bsuper2er[2],NoctC);
     }
     if(octet[i]->A_sum_A[2] != 0 ){
-//	cout << "A_sum_A " << i << " Octet fill " << octet[i]->A_sum_A[2] << " +- " << octet[i]->A_sum_Aer[2] << endl;
         Fill_Asymmetry_Vector(A_quat,octet[i]->A_sum_A[2],octet[i]->A_sum_Aer[2],NQuat);
     }
     if(octet[i]->A_sum_B[2] != 0 ){
         Fill_Asymmetry_Vector(A_quat,octet[i]->A_sum_B[2],octet[i]->A_sum_Ber[2],NQuat);
-//        cout << "A_sum_B " << i << " Octet fill " << octet[i]->A_sum_B[2] << " +- " << octet[i]->A_sum_Ber[2] << endl;
     }
-//    if(octet[i]->A_sum_B[2] == 0 ) cout << "A_sum_B = 0 " << endl;
       
       TotalCounts          += octet[i]->TotCounts;
       CurrentCounts.push_back(TotalCounts);
@@ -2306,8 +2304,8 @@ void Collect_Octets()
       OctDate.push_back(btr[octet[i]->FirstRunIndex]->RunDate->Convert());
 
       for(Int_t ii = 0 ; ii < 9 ; ii++){
-	      Fill_Asymmetry_Vector_Oct(A_Aves[ii],octet[i]->A_multi[ii],octet[i]->A_multier[ii],FullOct);
-	      Fill_Asymmetry_Vector_Oct(A_Aves_s[ii],octet[i]->A_sum[ii],octet[i]->A_sumer[ii],FullOct);
+	Fill_Asymmetry_Vector_Oct(A_Aves[ii],octet[i]->A_multi[ii],octet[i]->A_multier[ii],FullOct);
+	Fill_Asymmetry_Vector_Oct(A_Aves_s[ii],octet[i]->A_sum[ii],octet[i]->A_sumer[ii],FullOct);
       }
             
       Fill_Asymmetry_Vector_Oct(A_sum_A,octet[i]->A_sum_A[2],octet[i]->A_sum_Aer[2],FullOct);
@@ -2355,7 +2353,7 @@ void Collect_Octets()
 
   for(Int_t i = 0; i < 9 ; i++){
     cout << "Average corrected A for Analysis " << i;
-    cout << "  " << A_aves_tot[i]/(0.5*avebeta) << " +/- " << A_aves_toter[i]/(0.5*avebeta) <<  endl;
+    cout << "  " << A_aves_tot[i]<<"/"<<(0.5*avebeta) << " +/- " << A_aves_toter[i]<<"/" <<(0.5*avebeta) <<  endl;
   }
   //----------------------------------------------------------------
   // Define the graphs to display the asymmetries ..................
@@ -2605,11 +2603,14 @@ void Plot_RawAsymmetries(TGraphErrors *g1,TGraphErrors *g2,TGraphErrors *g3,Int_
   g2->Fit("flQ","RMEQ","goff");
   g3->Fit("flS","RMEQ","goff");
   //-----------------------------------------------------------------------------------------------
+  ofstream fout("./output_files/octval.dat");
+  fout << " Xasy  Asy   AsyEr  ResidFill (rel. to mean) " << flO->GetParameter(0) << endl;
   // Fill Residual histograms
   for(Int_t i = 0 ; i < noct ; i++){
         g1->GetPoint(i,Xasy,Asy);
         Asyer = g1->GetErrorY(i);
         hOctResid->Fill( (Asy - flO->GetParameter(0))/Asyer,1);
+        fout << Xasy << " " << Asy << " " << Asyer << " " << (Asy-flO->GetParameter(0))/Asyer << endl;
   }
   for(Int_t i = 0 ; i < NQuat ; i++){
         g2->GetPoint(i,Xasy,Asy);
