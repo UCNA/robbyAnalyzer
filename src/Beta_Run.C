@@ -9,6 +9,8 @@ Double_t Int_Asym(Double_t x1, Double_t x2);
 Double_t Asym_Err(Double_t x1,Double_t x2);
 Double_t fermi(Double_t x);
 Double_t Rate_Error(TH1F *h1, TH1F *h2, Float_t t1, Float_t t2);
+Double_t Rate_ErrorAnaE(TH1F *h1, TH1F *h2, Float_t t1, Float_t t2,Int_t type, Int_t bkT);
+Double_t Rate_ErrorAnaW(TH1F *h1, TH1F *h2, Float_t t1, Float_t t2,Int_t type, Int_t bkT);
 Double_t Rate_Error(TH1F *h1, TH1F *h2, TH1F *h3,TH1F *h4,Float_t t1, Float_t t2);
 Double_t GetIntError(TH1F *h1, TH1F *h2, TH1F *h3,TH1F *h4,Float_t t1, Float_t t2);
 
@@ -79,7 +81,7 @@ Int_t Beta_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
 
   if(remake == 1 || !AnalysisDirExist){
     Initialize_hist(0,1,1);
-    TFile *f2 = new TFile(Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ");
+    TFile *f2 = new TFile(Form("%s/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ");
     //cout << "Reading " << Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun) << endl;
     hmrIn = (TH1F*)f2->Get("UCN_Mon_4_Rate");
     for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){
@@ -206,26 +208,117 @@ Int_t Beta_Run::SubBck(Bck_Run *br)
    TObjArrayIter *WestIter  = new TObjArrayIter(HWestAn);
    TObjArrayIter *WestIterb = new TObjArrayIter(br->HWestAn);
    TH1 *hS,*hB;
+   TString filename;
+   Int_t bkT_d, bkT;
+   Double_t x1,x2,x3,x4,x5;
+   TString fileW, fileE;
 
    for(Int_t ii = 0 ; ii < HEastAn->GetEntries() ; ii++){
      hS = (TH1*)EastIter->Next();
      hB = (TH1*)EastIterb->Next();
-    /* cout << "Signal " << hS->GetName() << "\t bin : " << hS->GetNbinsX() << endl;
-     cout << "Background " << hB->GetName() << "\t bin : " << hB->GetNbinsX() << endl;*/
-     hS->Add(hB,-1);
      if(ii < 9){
-	BkgRtE[ii] = hB->Integral(nlow,nhigh);
-	Rate_Error((TH1F*)hS,(TH1F*)hB,rtime_e,br->rtime_e);
+
+//	Rate_Error((TH1F*)hS,(TH1F*)hB,rtime_e,br->rtime_e);
+
+//        if(ii==0 && GetRunNumber()>17734 && GetRunNumber()<17759) cout << GetRunNumber() << " Integrals E! " << hS->Integral(nlow,nhigh) << " " << hB->Integral(nlow,nhigh) << endl;
+	if(!strcmp(br->octtype,"A1") || !strcmp(br->octtype,"A12")){ Rate_ErrorAnaE((TH1F*)hS,(TH1F*)hB,rtime_e,br->rtime_e,ii,0); bkT=0;}
+	else if(!strcmp(br->octtype,"A9") || !strcmp(br->octtype,"A4")){ Rate_ErrorAnaE((TH1F*)hS,(TH1F*)hB,rtime_e,br->rtime_e,ii,1); bkT=1;}
+	else if(!strcmp(br->octtype,"B1") || !strcmp(br->octtype,"B12")){ Rate_ErrorAnaE((TH1F*)hS,(TH1F*)hB,rtime_e,br->rtime_e,ii,1); bkT=1;}
+	else if(!strcmp(br->octtype,"B9") || !strcmp(br->octtype,"B4")){ Rate_ErrorAnaE((TH1F*)hS,(TH1F*)hB,rtime_e,br->rtime_e,ii,0); bkT=0;}
+       BkgRtE[ii] = hB->Integral(nlow,nhigh);
+/*
+        filename="output_files/BR_txtOut/Erun"; filename+=GetRunNumber(); filename+="_atype"; filename+=ii; filename+=".dat";
+       if(!(std::ifstream(filename))){
+        ofstream foutS(filename);
+        filename="output_files/BR_txtOut/Erun"; filename+=br->GetRunNumber(); filename+="_atype";filename+=ii;filename+=".dat";
+        ofstream foutB(filename);
+     
+        foutS << rtime_e << endl;
+        foutB << btime_e << endl;
+        for(Int_t jj=0; jj<hS->GetNbinsX(); jj++){
+	  foutS << hS->GetBinContent(jj) << endl;
+	  foutB << hB->GetBinContent(jj) << endl;
+        }
+
+        foutS.close();
+        foutB.close(); 
+       } *//*
+      BkgRtE[ii]=0;
+      fileE="input_files/ReferenceSpectra_Octets-0-59_sf";
+      if(bkT==0) fileE+="OFF-AnaCh-A.txt";
+      else if(bkT==1) fileE+="ON-AnaCh-A.txt";
+      ifstream fInE(fileE);
+      while(fInE>>x1>>x2>>x3>>x4>>x5){if(x1>165 && x1<785) BkgRtE[ii]+=x2;}
+      fInE.close();
+*/
      }
+     if(ii==0){
+//        filename="output_files/R_txtOut/Erun"; filename+=GetRunNumber(); filename+="_atype"; filename+=ii; filename+=".dat";
+//       if(!(std::ifstream(filename))){
+//        ofstream foutS(filename);
+//        foutS << "Integrals " << hS->Integral(nlow,nhigh) << "\t" <<  hB->Integral(nlow,nhigh) << endl;
+//        foutS << "FG Time = " << rtime_e << "\t BG Time = " << btime_e << endl;
+//        for(Int_t jj=1; jj<hS->GetNbinsX(); jj++){
+//	  foutS << hS->GetBinCenter(jj) << "\t" << hS->GetBinContent(jj) << "\t" << hB->GetBinContent(jj) << endl;
+  //      }
+
+//        foutS.close();
+//      }
+     }
+     hS->Add(hB,-1);
    }
   for(Int_t ii = 0 ; ii < HWestAn->GetEntries() ; ii++){
      hS = (TH1*)WestIter->Next();
      hB = (TH1*)WestIterb->Next();
-     hS->Add(hB,-1);
      if(ii < 9){
+
+//	Rate_Error((TH1F*)hS,(TH1F*)hB,rtime_w,br->rtime_w);
+
+//        if(ii==0 && GetRunNumber()>17734 && GetRunNumber()<17759) cout << GetRunNumber() << " Integrals W! " << hS->Integral(nlow,nhigh) << " " << hB->Integral(nlow,nhigh) << endl;
+	if(!strcmp(br->octtype,"A1") || !strcmp(br->octtype,"A12")==0){ Rate_ErrorAnaW((TH1F*)hS,(TH1F*)hB,rtime_w,br->rtime_w,ii,0); bkT=0;}
+	else if(!strcmp(br->octtype,"A9") || !strcmp(br->octtype,"A4")==0){ Rate_ErrorAnaW((TH1F*)hS,(TH1F*)hB,rtime_w,br->rtime_w,ii,1); bkT=1;}
+	else if(!strcmp(br->octtype,"B1") || !strcmp(br->octtype,"B12")==0){ Rate_ErrorAnaW((TH1F*)hS,(TH1F*)hB,rtime_w,br->rtime_w,ii,1); bkT=1;}
+	else if(!strcmp(br->octtype,"B9") || !strcmp(br->octtype,"B4")==0){ Rate_ErrorAnaW((TH1F*)hS,(TH1F*)hB,rtime_w,br->rtime_w,ii,0); bkT=0;}
 	BkgRtW[ii] = hB->Integral(nlow,nhigh);
-	Rate_Error((TH1F*)hS,(TH1F*)hB,rtime_w,br->rtime_w);
+/*
+        filename="output_files/BR_txtOut/Wrun"; filename+=GetRunNumber(); filename+="_atype"; filename+=ii; filename+=".dat";
+       if(!(std::ifstream(filename))){
+        ofstream foutS(filename);
+        filename="output_files/BR_txtOut/Wrun"; filename+=br->GetRunNumber(); filename+="_atype";filename+=ii;filename+=".dat";
+        ofstream foutB(filename);
+     
+        foutS << rtime_w << endl;
+        foutB << btime_w << endl;
+        for(Int_t jj=0; jj<hS->GetNbinsX(); jj++){
+	  foutS << hS->GetBinContent(jj) << endl;
+	  foutB << hB->GetBinContent(jj) << endl;
+        }
+        foutS.close();
+        foutB.close(); 
+       } */
+/*      BkgRtW[ii]=0;
+      fileW="input_files/ReferenceSpectra_Octets-0-59_sf";
+      if(bkT==0) fileW+="OFF-AnaCh-A.txt";
+      else if(bkT==1) fileW+="ON-AnaCh-A.txt";
+      ifstream fInW(fileW);
+      while(fInW>>x1>>x2>>x3>>x4>>x5){if(x1>165 && x1<785) BkgRtW[ii]+=x4;}
+      fInW.close();
+*/
      }
+     if(ii==0){
+//        filename="output_files/R_txtOut/Wrun"; filename+=GetRunNumber(); filename+="_atype"; filename+=ii; filename+=".dat";
+//       if(!(std::ifstream(filename))){
+//        ofstream foutS(filename);
+//        foutS << "Integrals " << hS->Integral(nlow,nhigh) << "\t" <<  hB->Integral(nlow,nhigh) << endl;
+//        foutS << "FG Time = " << rtime_w << "\t BG Time = " << btime_w << endl;
+//        for(Int_t jj=1; jj<hS->GetNbinsX(); jj++){
+//	  foutS << hS->GetBinCenter(jj) << "\t" << hS->GetBinContent(jj) << "\t" << hB->GetBinContent(jj) << endl;
+//        }
+
+//        foutS.close();
+//      }
+     }
+     hS->Add(hB,-1);
    }
 
   BkgTe = br->rtime_e;
@@ -281,9 +374,28 @@ Int_t Beta_Run::SubBck(Bck_Run *br)
   hESigNos->Divide(br->heq);
   hWSigNos->Divide(br->hwq);
   
-  hAposw->Add(br->hAposw,-1);
-  hApose->Add(br->hApose,-1);
-  
+//  hAposw->Add(br->hAposw,-1);
+//  hApose->Add(br->hApose,-1);
+/*  Double_t dummyBin;
+
+  dummyBin=br->hApose->GetBinContent(1,1)*rtime_e/btime_e;  
+    hApose->SetBinContent(1,1,hApose->GetBinContent(1,1)-dummyBin);
+  dummyBin=br->hApose->GetBinContent(2,1)*rtime_e/btime_e;  
+    hApose->SetBinContent(2,1,hApose->GetBinContent(2,1)-dummyBin);
+  dummyBin=br->hApose->GetBinContent(1,2)*rtime_e/btime_e;  
+    hApose->SetBinContent(1,2,hApose->GetBinContent(1,2)-dummyBin);
+  dummyBin=br->hApose->GetBinContent(2,2)*rtime_e/btime_e;  
+    hApose->SetBinContent(2,2,hApose->GetBinContent(2,2)-dummyBin);
+
+  dummyBin=br->hAposw->GetBinContent(1,1)*rtime_w/btime_w;  
+    hAposw->SetBinContent(1,1,hAposw->GetBinContent(1,1)-dummyBin);
+  dummyBin=br->hAposw->GetBinContent(2,1)*rtime_w/btime_w;  
+    hAposw->SetBinContent(2,1,hAposw->GetBinContent(2,1)-dummyBin);
+  dummyBin=br->hAposw->GetBinContent(1,2)*rtime_w/btime_w;  
+    hAposw->SetBinContent(1,2,hAposw->GetBinContent(1,2)-dummyBin);
+  dummyBin=br->hAposw->GetBinContent(2,2)*rtime_w/btime_w;  
+    hAposw->SetBinContent(2,2,hAposw->GetBinContent(2,2)-dummyBin);
+*/
 //   hETDC_cor->Add(br->hETDC_cor,-1);
 //   hWTDC_cor->Add(br->hWTDC_cor,-1);
 // 
@@ -303,10 +415,14 @@ Int_t Beta_Run::SubBck(Bck_Run *br)
     erad[i]    = hERad[i]->Integral(nlow,nhigh);
     wrad[i]    = hWRad[i]->Integral(nlow,nhigh);
 	  
-    erader[i]  = sqrt( erad[i]*rtime_e + 
-		       br->hERad[i]->Integral(nlow,nhigh)*br->rtime_e)/rtime_e;
-    wrader[i]  = sqrt( wrad[i]*rtime_w + 
-		       br->hWRad[i]->Integral(nlow,nhigh)*br->rtime_w)/rtime_w;
+//    erader[i]  = sqrt( erad[i]*rtime_e + 
+//		       br->hERad[i]->Integral(nlow,nhigh)*br->rtime_e)/rtime_e;
+//    wrader[i]  = sqrt( wrad[i]*rtime_w + 
+//		       br->hWRad[i]->Integral(nlow,nhigh)*br->rtime_w)/rtime_w;
+    erader[i]  = sqrt( erad[i] + 
+		       br->hERad[i]->Integral(nlow,nhigh)*br->rtime_e/rtime_e);
+    wrader[i]  = sqrt( wrad[i] + 
+		       br->hWRad[i]->Integral(nlow,nhigh)*br->rtime_w/rtime_w);
   }
   
   emuon_rate = hEmuon->Integral();
@@ -519,6 +635,8 @@ Double_t Beta_Run::GetEnergyChi()
 {
   using namespace TMath;
   
+  for(int jj=0; jj<160; jj++) Diff[jj]=0;
+
   TF1 *fline = new TF1("fline","[0]",900.,1500.);
   
   fstream fref;
@@ -542,8 +660,6 @@ Double_t Beta_Run::GetEnergyChi()
      hEERef1->SetBinContent(ibin,temp3);
      hEERef2->SetBinContent(ibin,temp4);
 
-//	cout << ibin << "th Bin, contents " << temp2 << " " << temp3 << " " << temp4 << endl;
-
      ibin++;
   }while(ibin < 101);
   
@@ -556,11 +672,15 @@ Double_t Beta_Run::GetEnergyChi()
   hwq->Fit(fline,"RMEQ","goff");
   Residual_Bkg[1] = fline->GetParameter(0);
   Resid_Bkger[1]  = fline->GetParError(0);
-  
+
+  cout << Residual_Bkg[0] << " " << Residual_Bkg[1] << endl;
+ 
   Chi = 0.;
   
   for(Int_t i = 1 ; i <= heq->GetNbinsX() ; i++){
-    Chi += Diff[i-1]/80;
+//    if(Diff[i-1]>100000000 || (Diff[i-1]!=0 && Diff[i-1]<0.000001)) cout << "Diff! " << Diff[i-1] << endl;
+//    Chi += Diff[i-1]/80;
+      Chi += (Residual_Bkg[0]-heq->GetBinContent(i))*(Residual_Bkg[0]-heq->GetBinContent(i))/heq->GetBinContent(i);
   }
    
   delete fline;
@@ -683,12 +803,84 @@ Double_t Rate_Error(TH1F *h1, TH1F *h2, Float_t t1,Float_t t2)
   Double_t error = 0.;
   
   for(Int_t i = 1 ; i <= h1->GetNbinsX() ; i++){
-  
     error = Sqrt(Abs(h1->GetBinError(i)*h1->GetBinError(i) + h2->GetBinError(i)*h2->GetBinError(i)));
+//    if(h1->GetBinContent(i)==0 || h2->GetBinContent(i)==0) cout << " BIN EMPTY " << h1->GetBinContent(i) << " " << h2->GetBinContent(i) << " " << h1->GetBinError(i) << " " << h2->GetBinError(i) << " " << error << endl;
     h1->SetBinError(i,error);
 				          
   }
   
+  return -1.e3;
+}
+//----------------------------------------------------------------------------------------
+Double_t Rate_ErrorAnaE(TH1F *h1, TH1F *h2, Float_t t1,Float_t t2,Int_t type, Int_t bkT)
+{
+  
+  // Rate Error in a background subtracted spectra.
+  // For specifically the electron spectra measured in analysis types,
+  // correctly give non-zero error to empty bins based on total bkg spectra
+  //
+
+  using namespace TMath;
+
+  Double_t error = 0.;
+  Double_t x1, x2, x3, x4, x5, val;  
+  Double_t integ1=0; Double_t integ2=0;
+  TString fileE;
+
+  for(Int_t i = 1 ; i <= h1->GetNbinsX() ; i++){
+    integ1=0; integ2=0; val=0;
+    if(h2->GetBinContent(i)*t2<25){
+      fileE="input_files/ReferenceSpectra_Octets-0-59_sf";
+      if(bkT==0) fileE+="OFF-AnaCh-A.txt";
+      else if(bkT==1) fileE+="ON-AnaCh-A.txt";
+      ifstream fInE(fileE);
+      for(Int_t jj=0; jj<h1->GetNbinsX(); jj++){fInE>>x1>>x2>>x3>>x4>>x5; if(x1>1 && x1<1210){integ2+=x2; //h2->SetBinContent(jj,x2);
+        } if(jj==i){val=x3;}}
+      integ1=h2->Integral(1,120);
+      h2->SetBinError(i,val*integ1*t2/integ2);
+      fInE.close(); 
+    }
+  //  cout << i << " Debug AnaE " <<  h2->GetBinError(i) << " " << integ1 << " " << integ2 << " " << val << endl;
+//    for(Int_t jj=0; jj<h1->GetNbinsX(); jj++) h2->SetBinContent(jj,h2->GetBinContent(jj)*integ1*t2/integ2);
+    error = Sqrt(Abs(h1->GetBinError(i)*h1->GetBinError(i) + h2->GetBinError(i)*h2->GetBinError(i)));
+    h1->SetBinError(i,error);
+				          
+  }
+  return -1.e3;
+}
+Double_t Rate_ErrorAnaW(TH1F *h1, TH1F *h2, Float_t t1,Float_t t2,Int_t type, Int_t bkT)
+{
+  
+  // Rate Error in a background subtracted spectra.
+  // For specifically the electron spectra measured in analysis types,
+  // correctly give non-zero error to empty bins based on total bkg spectra
+  //
+
+  using namespace TMath;
+
+  Double_t error = 0.;
+  Double_t x1, x2, x3, x4, x5, val, val2;  
+  TString fileW;
+  Double_t integ1=0; Double_t integ2=0;
+
+  for(Int_t i = 1 ; i <= h1->GetNbinsX() ; i++){
+    integ1=0; integ2=0;
+    if(h2->GetBinContent(i)*t2<25){
+      fileW="input_files/ReferenceSpectra_Octets-0-59_sf";
+      if(bkT==0) fileW+="OFF-AnaCh-A.txt";
+      else if(bkT==1) fileW+="ON-AnaCh-A.txt";
+      ifstream fInW(fileW);
+      for(Int_t jj=0; jj<h1->GetNbinsX(); jj++){fInW>>x1>>x2>>x3>>x4>>x5; if(x1>1 && x1<1210){integ2+=x4; //h2->SetBinContent(jj,x4);
+       } if(jj==i){val=x5; val2=x4;}}
+      integ1=h2->Integral(1,120);
+      h2->SetBinError(i,val*integ1*t2/integ2);
+      fInW.close(); 
+    }
+//    for(Int_t jj=1; jj<h1->GetNbinsX(); jj++) h2->SetBinContent(jj,h2->GetBinContent(jj)*integ1*t2/integ2);
+    error = Sqrt(Abs(h1->GetBinError(i)*h1->GetBinError(i) + h2->GetBinError(i)*h2->GetBinError(i)));
+    h1->SetBinError(i,error);
+				          
+  }
   return -1.e3;
 }
 //----------------------------------------------------------------------------------------

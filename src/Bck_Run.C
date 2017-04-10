@@ -50,6 +50,8 @@ Int_t Bck_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
   Float_t OldTE = 0.;
   Float_t OldTW = 0.;  
 
+  Float_t monRateCount=0; Float_t bkgRate=0;
+
   for(Int_t i = 0 ; i < 100 ; i ++){
     seppar[i] = sep[i];
   }
@@ -57,14 +59,37 @@ Int_t Bck_Run::Fill(Int_t n,Int_t remake,Double_t *sep,Int_t nrun)
   //cout << "run num = " << GetRunNumber() << endl;
   if(remake == 1 || !AnalysisDirExist){
     Initialize_hist(0,1,1);
-    cout << "Reading " << Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun) << endl;
-    TFile *f2 = new TFile(Form("%s/hists/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ"); 
+    cout << "Reading " << Form("%s/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun) << endl;
+    TFile *f2 = new TFile(Form("%s/spec_%d.root",getenv("UCNAOUTPUTDIR"),nrun),"READ"); 
     hmrIn = (TH1F*) f2->Get("UCN_Mon_4_Rate");
     for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){
 	hmr1->Fill(hmrIn->GetBinCenter(MRbin),hmrIn->GetBinContent(MRbin));
     }
+    hmrIn = (TH1F*) f2->Get("UCN_Mon_1_Rate");
+    for(Int_t MRbin=0; MRbin<hmrIn->GetNbinsX(); MRbin++){
+	monRateCount+=hmrIn->GetBinContent(MRbin);
+    }
     delete hmrIn; 
     f2->Close();
+ 
+/*    TFile *f3 = new TFile(Form("/home/jwwexler/robbyWork/histOut/hists_%i.root",nrun),"UPDATE");
+
+    TH1F* heqX = (TH1F*)f3->Get(Form("/%s_Analysis_%d_%d/heq_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrun));
+    TH1F* hwqX = (TH1F*)f3->Get(Form("/%s_Analysis_%d_%d/heq_%d",getenv("UCNA_ANA_AUTHOR"),50,3,nrun));
+ 
+    cout << "Getting background integrals: " << heqX->Integral(nlow, nhigh) << " " << nlow << " " << nhigh << " " << rtime_e << endl;
+    bkgRate=heqX->Integral(nlow,nhigh)+hwqX->Integral(nlow,nhigh);
+*/
+    //TH1F* heqX = new TH1F(Form("bckr[%i]->heq",nrun));
+    //TH1F* hwqX = new TH1F(Form("bckr[%i]->hwq",nrun));
+    //bkgRate=heqX->Integral(nlow,nhigh)+hwqX->Integral(nlow,nhigh);
+    //delete heqX; delete hwqX;    
+
+//    ofstream fOutBkRate("output_files/inducedBkg.dat",fstream::out | fstream::app);
+//    fOutBkRate << nrun << "\t" << bkgRate << "\t" << monRateCount << "\t" << bkgRate/monRateCount << "\t" << (heqX->Integral(nlow,nhigh)/rtime_e + hwqX->Integral(nlow,nhigh)/rtime_w)/monRateCount << "\t" << rtime_e/rtime_eO << endl;
+//    fOutBkRate.close();
+
+//    f3->Close();
     //cout << "run num = " << GetRunNumber() << endl;
     for(Int_t i = 0 ; i < t1->GetEntries() ; i++){
 

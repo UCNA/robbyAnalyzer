@@ -145,10 +145,10 @@ void Average_All_Hists(TH1F *h1,std::vector<Double_t> &ave,std::vector<Double_t>
    using namespace TMath;
   
    for(Int_t nbin = 1; nbin <= h1->GetNbinsX() ; nbin++){
-        if(h1->GetBinError(nbin) > 0){
-		ave[nbin-1]  += h1->GetBinContent(nbin) / Power(h1->GetBinError(nbin),2);
-        	avee[nbin-1] += 1./Power(h1->GetBinError(nbin),2);
-	}
+     if(h1->GetBinError(nbin) > 0){
+	ave[nbin-1]  += h1->GetBinContent(nbin) / Power(h1->GetBinError(nbin),2);
+       	avee[nbin-1] += 1./Power(h1->GetBinError(nbin),2);
+     }
    }	
 
 }

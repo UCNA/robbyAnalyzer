@@ -11,8 +11,13 @@
 #define DEBUG      1
 //#define NRUNFIRST  14206
 #define NRUNFIRST  17124
-#define NRUNLAST   19967
-//#define NRUNLAST   17367
+#define NRUNLAST   19968
+
+//#define NRUNFIRST  17149
+//#define NRUNLAST   17174
+
+//#define NRUNFIRST  17735
+//#define NRUNLAST   17758
 
 #define MAXRUNS    NRUNLAST-NRUNFIRST
  
@@ -84,14 +89,14 @@ void CallAnalysisTasks()
   Average_A();
   cout << "Getting Octets " << endl;  
   Collect_Octets(); // Fails for large run lists
-  cout << "Plot Chi2 Dist." << endl;
+/*  cout << "Plot Chi2 Dist." << endl;
   Plot_ChiDis();
   cout << "Plotting Positions" << endl;
   Collect_Pos();                 
-  cout << "Collecting Type Rotation " << endl;
-  CollectTypeRot();  // Fails for large run lists and for other reasons w/e
-  cout << "Collecting TDC Corruption Data " << endl;
-  CollectTDCCor();
+  //cout << "Collecting Type Rotation " << endl;
+  //CollectTypeRot();  // Fails for large run lists and for other reasons w/e
+  //cout << "Collecting TDC Corruption Data " << endl;
+  //CollectTDCCor();
   cout << "Lets Find the Octets " << endl;
   CalcSimplSuper();
   cout << "Let's plot superratio of live times" << endl;
@@ -108,7 +113,7 @@ void CallAnalysisTasks()
   Collect_23Anode();
   cout << "Collecting Stuff" << endl;
   Collect_Stuff();                     // Blank - nnonfunctional?
-  cout << "Collecting Rad" << endl;
+*/  cout << "Collecting Rad" << endl;
   Collect_Rad();                           
   Collect_Energy_Spectra();
   cout << "Gammas" << endl;
@@ -132,6 +137,8 @@ Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nru
 {
   Double_t MonEventEnd;
   Double_t MonRateCounter;
+
+  ofstream foutJ1("output_files/bk_time.txt");
  
 // Analysis flow for background runs.
   for(Int_t i = 0 ; i < (int)nrunl.size() ; i++){
@@ -141,6 +148,7 @@ Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nru
       bk[i]->Scale2Time(1,1);
       bk[i]->Calculate_Backscatter(1,1);
       bk[i]->Diagnosis_Run();
+      foutJ1 << bk[i]->GetRunNumber() << " " << bk[i]->rtime_e << " " << bk[i]->rtime_w << endl;
 /*
       bk[i]->CountTimeEFirst=bk[i]->hCountTimeRecord->GetBinContent(1);
       bk[i]->CountTimeEAll=bk[i]->hCountTimeRecord->GetBinContent(2);
@@ -175,7 +183,7 @@ Int_t analyze_background_runs(Int_t n, std::vector<Bck_Run*>bk,vector<Int_t> nru
     bk[i]->DeleteHistos();
     }
   }
-
+  foutJ1.close();
  return 0;
 }
 //---------------------------------------------------------------------------
@@ -185,12 +193,14 @@ Int_t analyze_beta_runs(Int_t n, std::vector<Beta_Run*>bta,vector<Int_t> nrunl,I
   Double_t MonEventEnd;
   Double_t MonRateCounter;
  
+  ofstream foutJ2("output_files/beta_time.txt");
   for(Int_t i = 0 ; i < (int)nrunl.size() ; i++){
     if(bta[i]->OpenRun(nrunl[i])){
       bta[i]->Draw_2d(nrunl[i],i);
       bta[i]->Fill(i,remake,sep23,nrunl[i]);
       bta[i]->Scale2Time(1,1);
       bta[i]->Diagnosis_Run();
+      foutJ2 << bta[i]->GetRunNumber() << " " << bta[i]->rtime_e << " " << bta[i]->rtime_w << endl;
 /*
       bta[i]->CountTimeEFirst=bta[i]->hCountTimeRecord->GetBinContent(1);
       bta[i]->CountTimeEAll=bta[i]->hCountTimeRecord->GetBinContent(2);
@@ -221,7 +231,7 @@ Int_t analyze_beta_runs(Int_t n, std::vector<Beta_Run*>bta,vector<Int_t> nrunl,I
     bta[i]->DeleteHistos();
     }
   }
-
+  foutJ2.close();
  return 0;
 }
 //---------------------------------------------------------------------------
@@ -264,32 +274,31 @@ Int_t analyze_octets()
   
   if(runlist.is_open()){
     do{
+   // while(!(runlist.eof())){
       runlist >> noctets >> noctstart >> noctstop;
       cout << noctets << "\t" << noctstart << "\t" << noctstop << endl;      
       if(noctstart >= runstart && noctets != 1111 && noctstart !=0){
         // Open the Octet object
         octet.push_back(new Octet(noct,noctstart,noctstop,radcut));
         // define histograms
-        cout << "Start define histo " << endl;
         octet[noct]->Initialize_Histo(noct);
         // Use the MySQL database to determine the runs in each octet and fill the octet
         // defined runs.  If there are multiple DAQ runs for any such octet run they will
         // be summed such that the times are correctly counted and the rates are interms of
         // the total counts of all re
 	octet[noct]->FirstRunIndex=0;
-        cout << "Find some runs " << endl;
         octet[noct]->Find_Runs(btr,bckr,nbeta);
 	// Need to adjust the octect calculation for the full octet analysis.
     //cout << noct << " first run " << octet[noct]->FirstRunIndex << endl;
-        cout << "Calculate stuff " << endl;
 	octet[noct]->Calc_Super();
         octet[noct]->Calc_Super_Time();
 	octet[noct]->Calc_A_sum();
+	octet[noct]->Calc_A_bin();
 	octet[noct]->Calc_A_multi();
 	octet[noct]->Calc_A_sum_Bin();
 	octet[noct]->Get_Rad_A();
         // Make and output file in the "output" directory with all relative octet rate info.
-	octet[noct]->Debugger(noct);
+//	octet[noct]->Debugger(noct);
 	//octet[noct]->OutPutToDB();
         cout << "End " << endl;
 
@@ -298,8 +307,10 @@ Int_t analyze_octets()
 	noct++;
       }
     }while(!(runlist.eof()));
+//    }
   }
   noct--;
+  cout << "Finish analysis - nocts = " << noct << endl;
   runlist.close(); 
   
   return -1;
@@ -359,7 +370,7 @@ Int_t ParseMPMOctetList(vector<Int_t> &RunListMPM)
 	seg = strtok(runline,"= \t");
 	while ( seg != NULL){
           //use this if statement to cut out an octet with nocts.
-	  if(strlen(seg) == 5 && nocts != 9){
+	  if(strlen(seg) == 5 && nocts != 8 && nocts != 10 && nocts!=60){
           //if(strlen(seg) == 5){
                   if(atoi(seg)!=0){
 		  current_oct[nn] = atoi(seg);
@@ -946,7 +957,6 @@ void CollectTypeRot()
   Double_t Xinter,Yinter;
   TLine  *lEastNorm[5625],*lWestNorm[5625];
   hTotRote->Draw("colz");
-  delete hTotRote; 
   //------------------------------------------------------------------------------------------------------------------------
   // Define 2d histograms to hold the line intersection points.
   TH2F *hEastIntersection = new TH2F("hEastIntersection","East Point of Intersection;X(mm);Y(mm);"
@@ -959,8 +969,6 @@ void CollectTypeRot()
   TH2F *hPosShiftedTot   = new TH2F("hPosShiftedTot"  ,"Shifted Position Difference "   ,150,-25,25,150,-25,25);
   TH2F *hPosUnShiftedTot = new TH2F("hPosUnShiftedTot"," UnShifted Position Difference ",150,-25,25,150,-25,25);
 
-	cout << "Whatever the hell this is?" << endl;
-
   for(Int_t i = 0 ; i < nbeta ; i++){
     btr[i]->Load_Histograms(bckr[btr[i]->Bkg_index],1,0);
      for(Int_t j = 1 ; j < hPosShiftedTot->GetNbinsX()*hPosShiftedTot->GetNbinsY() ; j++){
@@ -971,6 +979,9 @@ void CollectTypeRot()
   }
   //-----------------------------------------------------------------------------------------------------------------------
   // Loop through all the normal lines and find the intersection points......
+
+  cout << "Intersection point check " << hAveEast1XRot->GetNbinsX() << " " << hAveEast1XRot->GetNbinsY() << endl;
+
   for(Int_t iline = 0; iline < hAveEast1XRot->GetNbinsX()*hAveEast1XRot->GetNbinsY(); iline++)
           GetNorm(hAveEast1XRot,hAveEast1YRot,lEastNorm[iline],lEastDis[iline],crot,iline);
   // Get intersections and fill the histogram
@@ -999,6 +1010,8 @@ void CollectTypeRot()
   crot->Print("output_files/intersection_points_east.pdf");
   //Get2DGaussianFit(hEastIntersection,Xinter,Yinter);
 
+  delete hTotRote; 
+
   for(Int_t iline = 0; iline < 5625 ; iline++){
 	Double_t angle = Return_Rotation_Angle(lEastDis[iline],Xinter,Yinter);
         if(angle > 0)hEastAngle->Fill(angle, 1.);
@@ -1021,11 +1034,10 @@ void CollectTypeRot()
   // repeat process for the west side
   crot->Clear();
   hTotRotw->Draw("colz");
-  delete hTotRotw; 
 
   for(Int_t iline = 0; iline < hAveWest1XRot->GetNbinsX()*hAveWest1XRot->GetNbinsY(); iline++)
-          GetNorm(hAveEast1XRot,hAveEast1YRot,lWestNorm[iline],lWestDis[iline],crot,iline);
-          //GetNorm(hAveWest1XRot,hAveWest1YRot,lWestNorm[iline],lWestDis[iline],crot,iline);
+          //GetNorm(hAveEast1XRot,hAveEast1YRot,lWestNorm[iline],lWestDis[iline],crot,iline);
+          GetNorm(hAveWest1XRot,hAveWest1YRot,lWestNorm[iline],lWestDis[iline],crot,iline);
    //------------------------------------------------------------------------------------------------------------------------
    for(Int_t iline = 0; iline < 5625 ; iline++)
      for(Int_t jline = 0 ; jline < 5625 ; jline++)
@@ -1039,6 +1051,7 @@ void CollectTypeRot()
   crot->Print("output_files/intersection_points_west.pdf");
   //-------------------------------------------------------------------------------------------------------------------------
 
+  delete hTotRotw; 
   delete crot;  delete hPosShiftedTot; delete hPosUnShiftedTot;
   delete hEastIntersection; delete hWestIntersection; delete hEastAngle;
 
@@ -1280,10 +1293,10 @@ void CalcSimplSuper()
 
   for(Int_t k = 0 ; k < nbck ; k++){ // ORIGINAL
     bckr[k]->Load_Histograms(0);
-    Get_Base_Super(k,(char*)"A1",(char*)"A4");  // Original Get_Base_Super
-    Get_Base_Super(k,(char*)"A9",(char*)"A12"); //  uses btr, wrote
-    Get_Base_Super(k,(char*)"B1",(char*)"B4"); //   Get_Base_Super_Back
-    Get_Base_Super(k,(char*)"B9",(char*)"B12"); //  to read bckr
+    //Get_Base_Super(k,(char*)"A1",(char*)"A4");  // Original Get_Base_Super
+    //Get_Base_Super(k,(char*)"A9",(char*)"A12"); //  uses btr, wrote
+    //Get_Base_Super(k,(char*)"B1",(char*)"B4"); //   Get_Base_Super_Back
+    //Get_Base_Super(k,(char*)"B9",(char*)"B12"); //  to read bckr
 
     BkgdWestOne[k] = bckr[k]->BetasWest + 1.0;
     BkgdEastOne[k] = bckr[k]->BetasEast + 1.0;
@@ -1515,9 +1528,12 @@ void CalcSimplSuper()
   
   for(int i = 0; i < 4; i++)Xpos[i] = i+1;
 
+  TF1 *fLSupAll = new TF1("fLSupAll","[0]",0,5);
+
   TGraphErrors *gPave = new TGraphErrors(4,Xpos,SupPos,0,SupPosE);
   ColorGraphic(gPave,4,20,2);
   gPave->Draw("AP");
+  gPave->Fit(fLSupAll,"REMQ","");
   gPave->GetXaxis()->SetTitle("Quadrant");
   gPave->GetYaxis()->SetTitle("Superratio");
   gPave->SetTitle("Quadrant Superratios");
@@ -1537,6 +1553,7 @@ void CalcSimplSuper()
   delete fLSup2;
   delete fLSup3;
   delete fLSup4;  
+  delete fLSupAll;
   delete gPave;
 //  delete EastClockArray;
 //  delete WestClockArray;
@@ -1581,7 +1598,15 @@ void Get_Base_Super(Int_t i, char oct1[4],char oct2[4])
 	 lookahead = jstar-1 - i;
       }
     }// else {
+    
+    Double_t signFlip=1;
 
+    if(!strcmp(oct1,"A7")||!strcmp(oct1,"B2")){
+      signFlip=-1;
+//      cout << "Lookahead swap " << oct1 << " " << i << " " << lookahead << endl;
+    }  
+
+//    else cout << "Lookahead -noswap " << oct1 << " " << i << " " << lookahead << endl;
     btr[i+lookahead]->Load_Histograms(bckr[btr[i+lookahead]->Bkg_index],1,0);
       fsuprat1 <<"Super ratios " <<  btr[i]->GetRunNumber() << "\t" << btr[i+lookahead]->GetRunNumber() << endl;
       // if the quartet is found calculate the Asymmetry from the
@@ -1607,7 +1632,7 @@ void Get_Base_Super(Int_t i, char oct1[4],char oct2[4])
 	                                    btr[i]->rtime_e,btr[i+lookahead]->rtime_e,nlow,nhigh);
       // Get Position Dependent Super Ratios
       
-      SuperPos1[Nsuper-1] = GetSuperRatioAsymmetry(btr[i]->hAposw->GetBinContent(1,1),
+      SuperPos1[Nsuper-1] = signFlip*GetSuperRatioAsymmetry(btr[i]->hAposw->GetBinContent(1,1),
 					  btr[i]->hApose->GetBinContent(1,1),
 					  btr[i+lookahead]->hAposw->GetBinContent(1,1),
 					  btr[i+lookahead]->hApose->GetBinContent(1,1));
@@ -1618,7 +1643,7 @@ void Get_Base_Super(Int_t i, char oct1[4],char oct2[4])
 					    btr[i+lookahead]->hApose->GetBinContent(1,1),
 	                                    btr[i]->rtime_e,btr[i+lookahead]->rtime_e);
       //----------------------------------------------------------------------------------------
-      SuperPos2[Nsuper-1] = GetSuperRatioAsymmetry(btr[i]->hAposw->GetBinContent(2,1),
+      SuperPos2[Nsuper-1] = signFlip*GetSuperRatioAsymmetry(btr[i]->hAposw->GetBinContent(2,1),
 					  btr[i]->hApose->GetBinContent(2,1),
 					  btr[i+lookahead]->hAposw->GetBinContent(2,1),
 					  btr[i+lookahead]->hApose->GetBinContent(2,1));
@@ -1630,7 +1655,7 @@ void Get_Base_Super(Int_t i, char oct1[4],char oct2[4])
 						btr[i]->rtime_e,btr[i+lookahead]->rtime_e);
       //----------------------------------------------------------------------------------------
       
-      SuperPos3[Nsuper-1] = GetSuperRatioAsymmetry(btr[i]->hAposw->GetBinContent(1,2),
+      SuperPos3[Nsuper-1] = signFlip*GetSuperRatioAsymmetry(btr[i]->hAposw->GetBinContent(1,2),
 					  btr[i]->hApose->GetBinContent(1,2),
 					  btr[i+lookahead]->hAposw->GetBinContent(1,2),
 				          btr[i+lookahead]->hApose->GetBinContent(1,2));
@@ -1641,7 +1666,7 @@ void Get_Base_Super(Int_t i, char oct1[4],char oct2[4])
 					        btr[i+lookahead]->hApose->GetBinContent(1,2),
 						btr[i]->rtime_e,btr[i+lookahead]->rtime_e);
       //--------------------------------------------------------------------------------------
-      SuperPos4[Nsuper-1] = GetSuperRatioAsymmetry(btr[i]->hAposw->GetBinContent(2,2),
+      SuperPos4[Nsuper-1] = signFlip*GetSuperRatioAsymmetry(btr[i]->hAposw->GetBinContent(2,2),
 					  btr[i]->hApose->GetBinContent(2,2),
 					  btr[i+lookahead]->hAposw->GetBinContent(2,2),
 				          btr[i+lookahead]->hApose->GetBinContent(2,2));
@@ -1667,129 +1692,6 @@ void Get_Base_Super(Int_t i, char oct1[4],char oct2[4])
 }
 //--------------------------------------------------------------
 
-void Get_Base_Super_Back(Int_t i, char oct1[4],char oct2[4])
-{
-  
-  // Eliminates the potential double counting of Quartets.
-
-  Int_t jstar = 0;
-  
-  if(i>0)
-    
-     if(!strcmp(bckr[i-1]->octtype,bckr[i]->octtype) && bckr[i-1]->rtime_e > bckr[i]->rtime_e) return;
-  if(i < nbeta-1)
-    if(!strcmp(bckr[i+1]->octtype,bckr[i]->octtype) && bckr[i+1]->rtime_e > bckr[i]->rtime_e) return;
-  // Check for the existance of the quartet pair
-  if(!strcmp(bckr[i]->octtype,oct1)){
-    // prevent from looking a negative array indices
-    if(i < 4) lookahead = 0;
-    // Loop around to find the correct run
-    do{      
-      lookahead++;     
-    }while(strcmp(bckr[i+lookahead]->octtype,oct2) && lookahead < 6 && lookahead+1+i < nbeta);
-    // if 5 then its a bad data set
-    if(lookahead == 6){
-      cout << "Matching Run for Run " << bckr[i]->GetRunNumber() << " Not Found!! " << Nsuper << endl;
-      if(bckr[i]->GetRunNumber() == 11090){
-         do{
-	   jstar++;
-	 }while(bckr[jstar-1]->GetRunNumber() != 11093);
-	 lookahead = jstar - i -1;
-      }
-      if(bckr[i]->GetRunNumber() == 11084){
-	do{
-	   jstar++;
-	 }while(bckr[jstar-1]->GetRunNumber() != 11088);
-	 lookahead = jstar-1 - i;
-      }
-    }// else {
-
-	bckr[i+lookahead]->Load_Histograms(0);
-
-      fsuprat1 <<"Super ratios " <<  bckr[i]->GetRunNumber() << "\t" << bckr[i+lookahead]->GetRunNumber() << endl;
-
-      // if the quartet is found calculate the Asymmetry from the
-      // super ratio.
-      // This needs to be adjusted to add in the cases where there are
-      // multiple files for the same type of octet run.
-      // Get Super Ratio
-      SuperTiming[Nsuper-1] = GetSuperRatioEight(bckr[i]->CountTimeWBeta,bckr[i]->CountTimeWFirstBeta,bckr[i]->CountTimeEBeta,bckr[i]->CountTimeEFirstBeta,bckr[i+lookahead]->CountTimeWBeta,bckr[i+lookahead]->CountTimeWFirstBeta,bckr[i+lookahead]->CountTimeEBeta,bckr[i+lookahead]->CountTimeEFirstBeta);
-      SuperTimingA[Nsuper-1] = GetSuperRatioEightAss(bckr[i]->CountTimeWBeta,bckr[i]->CountTimeWFirstBeta,bckr[i]->CountTimeEBeta,bckr[i]->CountTimeEFirstBeta,bckr[i+lookahead]->CountTimeWBeta,bckr[i+lookahead]->CountTimeWFirstBeta,bckr[i+lookahead]->CountTimeEBeta,bckr[i+lookahead]->CountTimeEFirstBeta);
-      Super[Nsuper-1]  = GetSuperRatioAsymmetry(bckr[i]->hwq,bckr[i]->heq,
-				     bckr[i+lookahead]->hwq,bckr[i+lookahead]->heq,nlow,nhigh);
-      // Get Super Ratio error
-      SuperE[Nsuper-1] = GetSuperRatioError(bckr[i]->hwq,bckr[i]->heq,
-					  bckr[i+lookahead]->hwq,bckr[i+lookahead]->heq,
-                                          bckr[i]->rtime_e,bckr[i+lookahead]->rtime_e,nlow,nhigh);
-      // Get Analysis C Super Ratios
-      SuperC[Nsuper-1]  = GetSuperRatioAsymmetry(bckr[i]->hwqC,bckr[i]->heqC,
-				       bckr[i+lookahead]->hwqC,bckr[i+lookahead]->heqC,nlow,nhigh);
-      // Get Super Ratio error
-      SuperCE[Nsuper-1] = GetSuperRatioError(bckr[i]->hwqC,bckr[i]->heqC,
-					    bckr[i+lookahead]->hwqC,bckr[i+lookahead]->heqC,
-	                                    bckr[i]->rtime_e,bckr[i+lookahead]->rtime_e,nlow,nhigh);
-      // Get Position Dependent Super Ratios
-      
-      SuperPos1[Nsuper-1] = GetSuperRatioAsymmetry(bckr[i]->hAposw->GetBinContent(1,1),
-					  bckr[i]->hApose->GetBinContent(1,1),
-					  bckr[i+lookahead]->hAposw->GetBinContent(1,1),
-					  bckr[i+lookahead]->hApose->GetBinContent(1,1));
-      
-      SuperEPos1[Nsuper-1] = GetSuperRatioError(bckr[i]->hAposw->GetBinContent(1,1),
-					    bckr[i]->hApose->GetBinContent(1,1),
-					    bckr[i+lookahead]->hAposw->GetBinContent(1,1),
-					    bckr[i+lookahead]->hApose->GetBinContent(1,1),
-	                                    bckr[i]->rtime_e,btr[i+lookahead]->rtime_e);
-      //----------------------------------------------------------------------------------------
-      SuperPos2[Nsuper-1] = GetSuperRatioAsymmetry(bckr[i]->hAposw->GetBinContent(2,1),
-					  bckr[i]->hApose->GetBinContent(2,1),
-					  bckr[i+lookahead]->hAposw->GetBinContent(2,1),
-					  bckr[i+lookahead]->hApose->GetBinContent(2,1));
-      
-      SuperEPos2[Nsuper-1] = GetSuperRatioError(bckr[i]->hAposw->GetBinContent(2,1),
-	                                        bckr[i]->hApose->GetBinContent(2,1),
-					        bckr[i+lookahead]->hAposw->GetBinContent(2,1),
-					        bckr[i+lookahead]->hApose->GetBinContent(2,1),
-						bckr[i]->rtime_e,btr[i+lookahead]->rtime_e);
-      //----------------------------------------------------------------------------------------
-      
-      SuperPos3[Nsuper-1] = GetSuperRatioAsymmetry(bckr[i]->hAposw->GetBinContent(1,2),
-					  bckr[i]->hApose->GetBinContent(1,2),
-					  bckr[i+lookahead]->hAposw->GetBinContent(1,2),
-				          bckr[i+lookahead]->hApose->GetBinContent(1,2));
-      
-      SuperEPos3[Nsuper-1] = GetSuperRatioError(bckr[i]->hAposw->GetBinContent(1,2),
-	                                        bckr[i]->hApose->GetBinContent(1,2),
-					        bckr[i+lookahead]->hAposw->GetBinContent(1,2),
-					        bckr[i+lookahead]->hApose->GetBinContent(1,2),
-						bckr[i]->rtime_e,btr[i+lookahead]->rtime_e);
-      //--------------------------------------------------------------------------------------
-      SuperPos4[Nsuper-1] = GetSuperRatioAsymmetry(bckr[i]->hAposw->GetBinContent(2,2),
-					  bckr[i]->hApose->GetBinContent(2,2),
-					  bckr[i+lookahead]->hAposw->GetBinContent(2,2),
-				          bckr[i+lookahead]->hApose->GetBinContent(2,2));
-      
-      SuperEPos4[Nsuper-1] = GetSuperRatioError(bckr[i]->hAposw->GetBinContent(2,2),
-	                                        bckr[i]->hApose->GetBinContent(2,2),
-					        bckr[i+lookahead]->hAposw->GetBinContent(2,2),
-					        bckr[i+lookahead]->hApose->GetBinContent(2,2),
-						bckr[i]->rtime_e,btr[i+lookahead]->rtime_e);
-      NOctet = Nsuper;
-    
-	bckr[i+lookahead]->Remove_Histograms();
-  
-      // Increment counters.
-      Xrun[Nsuper-1] = Nsuper;
-      Nsuper++;
-    // reset lookahead variable to -4 so that we can look ahead and behind the current run
-    // just incase.
-    lookahead = -4;
-    jstar = 0 ;
-     
-   }  
-  return;
-}
-//--------------------------------------------------------------
 //------------------------------------------------------------------------------------
 void Plot_Timing()
 {
@@ -2267,35 +2169,38 @@ void Collect_Octets()
     fsup << "\t" << octet[i]->Asuper2er[2] << "\t";
     fsup << octet[i]->Bsuper1[2] << "\t" << octet[i]->Bsuper1er[2] << "\t" <<octet[i]->Bsuper2[2];
     fsup << "\t" <<octet[i]->Bsuper2er[2] << endl;
-    
+    // Offset counters based on missing octets 
+    if(i==7) NQuat+=2;    if(i==8) NQuat+=2;
+    if(i==7) NoctC+=4;    if(i==8) NoctC+=4;
+    if(i==7) FullOct++;   if(i==8) FullOct++;
     // Output the oct list used in the analysis.
-    if(IsNaN(octet[i]->Asuper2[2]) || IsNaN(octet[i]->Asuper1[2]) || IsNaN(octet[i]->Bsuper1[2]) || IsNaN(octet[i]->Bsuper2[2]) || 
-     octet[i]->Asuper2[2] == 0 ||octet[i]->Asuper1[2] == 0 || octet[i]->Bsuper2[2] == 0 || octet[i]->Bsuper1[2] == 0   ){
-      if(!(IsNaN(octet[i]->Asuper1[2])) && octet[i]->Asuper1[2] != 0  ){
-          Fill_Asymmetry_Vector(A_super,octet[i]->Asuper1[2],octet[i]->Asuper1er[2],NoctC);
+    if(IsNaN(octet[i]->Asuper2[0]) || IsNaN(octet[i]->Asuper1[0]) || IsNaN(octet[i]->Bsuper1[0]) || IsNaN(octet[i]->Bsuper2[0]) || 
+     octet[i]->Asuper2[0] == 0 ||octet[i]->Asuper1[0] == 0 || octet[i]->Bsuper2[0] == 0 || octet[i]->Bsuper1[0] == 0   ){
+      if(!(IsNaN(octet[i]->Asuper1[0])) && octet[i]->Asuper1[0] != 0  ){
+          Fill_Asymmetry_Vector(A_super,octet[i]->Asuper1[0],octet[i]->Asuper1er[0],NoctC);
       }
-      if(!(IsNaN(octet[i]->Asuper2[2])) && octet[i]->Asuper2[2] != 0  ){
-          Fill_Asymmetry_Vector(A_super,octet[i]->Asuper2[2],octet[i]->Asuper2er[2],NoctC);
-      }
-      
-      if(!(IsNaN(octet[i]->Bsuper1[2])) && octet[i]->Bsuper1[2] != 0 ){
-          Fill_Asymmetry_Vector(A_super,octet[i]->Bsuper1[2],octet[i]->Bsuper1er[2],NoctC);
+      if(!(IsNaN(octet[i]->Asuper2[0])) && octet[i]->Asuper2[0] != 0  ){
+          Fill_Asymmetry_Vector(A_super,octet[i]->Asuper2[0],octet[i]->Asuper2er[0],NoctC);
       }
       
-      if(!(IsNaN(octet[i]->Bsuper2[2])) && octet[i]->Bsuper2[2] != 0 ){
-         Fill_Asymmetry_Vector(A_super,octet[i]->Bsuper2[2],octet[i]->Bsuper2er[2],NoctC);
+      if(!(IsNaN(octet[i]->Bsuper1[0])) && octet[i]->Bsuper1[0] != 0 ){
+          Fill_Asymmetry_Vector(A_super,octet[i]->Bsuper1[0],octet[i]->Bsuper1er[0],NoctC);
+      }
+      
+      if(!(IsNaN(octet[i]->Bsuper2[0])) && octet[i]->Bsuper2[0] != 0 ){
+         Fill_Asymmetry_Vector(A_super,octet[i]->Bsuper2[0],octet[i]->Bsuper2er[0],NoctC);
       }
     } else {
-      Fill_Asymmetry_Vector(A_super,octet[i]->Asuper1[2],octet[i]->Asuper1er[2],NoctC);
-      Fill_Asymmetry_Vector(A_super,octet[i]->Asuper2[2],octet[i]->Asuper2er[2],NoctC);
-      Fill_Asymmetry_Vector(A_super,octet[i]->Bsuper1[2],octet[i]->Bsuper1er[2],NoctC);
-      Fill_Asymmetry_Vector(A_super,octet[i]->Bsuper2[2],octet[i]->Bsuper2er[2],NoctC);
+      Fill_Asymmetry_Vector(A_super,octet[i]->Asuper1[0],octet[i]->Asuper1er[0],NoctC);
+      Fill_Asymmetry_Vector(A_super,octet[i]->Asuper2[0],octet[i]->Asuper2er[0],NoctC);
+      Fill_Asymmetry_Vector(A_super,octet[i]->Bsuper1[0],octet[i]->Bsuper1er[0],NoctC);
+      Fill_Asymmetry_Vector(A_super,octet[i]->Bsuper2[0],octet[i]->Bsuper2er[0],NoctC);
     }
-    if(octet[i]->A_sum_A[2] != 0 ){
-        Fill_Asymmetry_Vector(A_quat,octet[i]->A_sum_A[2],octet[i]->A_sum_Aer[2],NQuat);
+    if(octet[i]->A_sum_A[0] != 0 ){
+        Fill_Asymmetry_Vector(A_quat,octet[i]->A_sum_A[0],octet[i]->A_sum_Aer[0],NQuat);
     }
-    if(octet[i]->A_sum_B[2] != 0 ){
-        Fill_Asymmetry_Vector(A_quat,octet[i]->A_sum_B[2],octet[i]->A_sum_Ber[2],NQuat);
+    if(octet[i]->A_sum_B[0] != 0 ){
+        Fill_Asymmetry_Vector(A_quat,octet[i]->A_sum_B[0],octet[i]->A_sum_Ber[0],NQuat);
     }
       
       TotalCounts          += octet[i]->TotCounts;
@@ -2306,19 +2211,24 @@ void Collect_Octets()
       for(Int_t ii = 0 ; ii < 9 ; ii++){
 	Fill_Asymmetry_Vector_Oct(A_Aves[ii],octet[i]->A_multi[ii],octet[i]->A_multier[ii],FullOct);
 	Fill_Asymmetry_Vector_Oct(A_Aves_s[ii],octet[i]->A_sum[ii],octet[i]->A_sumer[ii],FullOct);
+//	Fill_Asymmetry_Vector_Oct(A_Aves_s[ii],octet[i]->A_bin[ii],octet[i]->A_binErr[ii],FullOct);
       }
-            
-      Fill_Asymmetry_Vector_Oct(A_sum_A,octet[i]->A_sum_A[2],octet[i]->A_sum_Aer[2],FullOct);
-      Fill_Asymmetry_Vector_Oct(A_sum_B,octet[i]->A_sum_B[2],octet[i]->A_sum_Ber[2],FullOct);
-      Fill_Asymmetry_Vector_Oct(A_multi_A,octet[i]->A_multi_A[2],octet[i]->A_multi_Aer[2],FullOct);
-      Fill_Asymmetry_Vector_Oct(A_multi_B,octet[i]->A_multi_B[2],octet[i]->A_multi_Ber[2],FullOct);
+     //cout << i << " " << FullOct << " TEST " << octet[i]->A_sum_A[0] << " " << octet[i]->A_sum_B[0] << endl;  
+    if(octet[i]->A_sum_A[0] != 0 ) Fill_Asymmetry_Vector_Oct(A_sum_A,octet[i]->A_sum_A[0],octet[i]->A_sum_Aer[0],FullOct);
+    if(octet[i]->A_sum_B[0] != 0 )  Fill_Asymmetry_Vector_Oct(A_sum_B,octet[i]->A_sum_B[0],octet[i]->A_sum_Ber[0],FullOct);
+    if(octet[i]->A_multi_A[0] != 0 )  Fill_Asymmetry_Vector_Oct(A_multi_A,octet[i]->A_multi_A[0],octet[i]->A_multi_Aer[0],FullOct);
+    if(octet[i]->A_multi_B[0] != 0 )  Fill_Asymmetry_Vector_Oct(A_multi_B,octet[i]->A_multi_B[0],octet[i]->A_multi_Ber[0],FullOct);
 
       FullOct++;
   } 
-  
+  FullOct-=2; NoctC-=8; NQuat-=4;  
+//  FullOct-=1; NoctC-=4; NQuat-=2;  
   foct.close();
   fquart.close();
   fsup.close();
+
+
+  cout << "Full Octete = " << FullOct << endl;
 
   for(Int_t ii = 0 ; ii < 9 ; ii++){
       Average_Array_Vector(A_Aves[ii],FullOct, A_ave_tot[ii], A_ave_toter[ii]);
@@ -2361,9 +2271,13 @@ void Collect_Octets()
   TGraphErrors *gsumB     = new TGraphErrors((int)A_sum_B.run_number.size()-1,&A_sum_B.run_number[0],&A_sum_B.A_ave[0],0,&A_sum_B.A_error[0]);
   TGraphErrors *gmultiA   = new TGraphErrors((int)A_multi_A.run_number.size()-1,&A_multi_A.run_number[0],&A_multi_A.A_ave[0],0,&A_multi_A.A_error[0]);
   TGraphErrors *gmultiB   = new TGraphErrors((int)A_multi_B.run_number.size()-1,&A_multi_B.run_number[0],&A_multi_B.A_ave[0],0,&A_multi_B.A_error[0]);
-  TGraphErrors *gOctAave  = new TGraphErrors((int)A_Aves[2].run_number.size()-1,&A_Aves[2].run_number[0],&A_Aves[2].A_ave[0],0,&A_Aves[2].A_error[0]);
-  TGraphErrors *gSuperA   = new TGraphErrors((int)A_super.run_number.size()-1,&A_super.run_number[0],&A_super.A_ave[0],0,&A_super.A_error[0]);
-  TGraphErrors *gQuartetA = new TGraphErrors((int)A_quat.run_number.size()-1,&A_quat.run_number[0],&A_quat.A_ave[0],0,&A_quat.A_error[0]);
+//  TGraphErrors *gOctAave  = new TGraphErrors((int)A_Aves[0].run_number.size(),&A_Aves[0].run_number[0],&A_Aves[0].A_ave[0],0,&A_Aves[0].A_error[0]);
+//  TGraphErrors *gSuperA   = new TGraphErrors((int)A_super.run_number.size(),&A_super.run_number[0],&A_super.A_ave[0],0,&A_super.A_error[0]);
+//  TGraphErrors *gQuartetA = new TGraphErrors((int)A_quat.run_number.size(),&A_quat.run_number[0],&A_quat.A_ave[0],0,&A_quat.A_error[0]);
+
+  TGraphErrors *gOctAave  = new TGraphErrors((int)A_Aves_s[0].run_number.size(),&A_Aves_s[0].run_number[0],&A_Aves_s[0].A_ave[0],0,&A_Aves_s[0].A_error[0]);
+  TGraphErrors *gSuperA   = new TGraphErrors((int)A_super.run_number.size(),&A_super.run_number[0],&A_super.A_ave[0],0,&A_super.A_error[0]);
+  TGraphErrors *gQuartetA = new TGraphErrors((int)A_quat.run_number.size(),&A_quat.run_number[0],&A_quat.A_ave[0],0,&A_quat.A_error[0]);
 
   cout << "Number of quads " << (int)A_quat.run_number.size() << endl;
 
@@ -2381,9 +2295,9 @@ void Collect_Octets()
   ColorGraphic(gmultiA,3,20,2);
   ColorGraphic(gmultiB,3,20,2);
   //--------------------------------------------------------------------------------------------------------------  
-  ColorGraphic(gOctAave ,2,20,2,0.6,"Octet Integral Asymmetry 175 - 775 keV","Octet Number","Asym_{raw}");
-  ColorGraphic(gSuperA  ,2,20,2,0.6,"Super-Ratio Integral Asymmetry 175 - 775 keV","Super-Ratio Number","Asym_{raw}");
-  ColorGraphic(gQuartetA,2,20,2,0.6,"Quartet Integral Asymmetry 175 - 775 keV","Quartet Number","Asym_{raw}");
+  ColorGraphic(gOctAave ,2,20,2,0.6,"Octet Integral Asymmetry 180 - 780 keV","Octet Number","Asym_{raw}");
+  ColorGraphic(gSuperA  ,2,20,2,0.6,"Super-Ratio Integral Asymmetry 180 - 780 keV","Super-Ratio Number","Asym_{raw}");
+  ColorGraphic(gQuartetA,2,20,2,0.6,"Quartet Integral Asymmetry 180 - 780 keV","Quartet Number","Asym_{raw}");
   // --------------------------------------------------------------------------------
   // Plot some shit..........
   Plot_RawAsymmetries(gOctAave,gQuartetA,gSuperA,FullOct,NoctC,NQuat);
@@ -2424,6 +2338,7 @@ void Collect_Octets()
 	fchmonte >> MonteA[i];
 	MonteA[i] = TMath::Abs(MonteA[i]);
         fchanalysis << xchoice[i] << "\t" << A_aves_tot[i] << "\t" << A_aves_toter[i] << endl;
+        //MonteA[i]=A_aves_tot[i];
   }
   
   fchmonte.close();
@@ -2557,7 +2472,8 @@ void Fill_Asymmetry_Vector(Asym_t &A,Double_t oct,Double_t octer,Int_t &index)
 {
     A.A_ave.push_back(TMath::Abs(oct));
     A.A_error.push_back(octer);
-    A.run_number.push_back(index + 1.);
+//    A.run_number.push_back(index + 1.);
+    A.run_number.push_back(index);
     index++;
 };
 //---------------------------------------------------------------------------------------------------------------
@@ -2565,7 +2481,8 @@ void Fill_Asymmetry_Vector_Oct(Asym_t &A,Double_t oct,Double_t octer,Int_t index
 {
     A.A_ave.push_back(TMath::Abs(oct));
     A.A_error.push_back(octer);
-    A.run_number.push_back(index + 1.);
+//    A.run_number.push_back(index + 1.);
+    A.run_number.push_back(index);
 };
 //----------------------------------------------------------------------------------------------------------------
 void Plot_RawAsymmetries(TGraphErrors *g1,TGraphErrors *g2,TGraphErrors *g3,Int_t noct,Int_t NoctC,Int_t NQuat)
@@ -2595,16 +2512,16 @@ void Plot_RawAsymmetries(TGraphErrors *g1,TGraphErrors *g2,TGraphErrors *g3,Int_
   pQutR->Draw();
   pSupR->Draw();
   //-----------------------------------------------------------------------------------------------
-  TF1 *flO = new TF1("flO","[0]",0,noct  + 1.);
-  TF1 *flS = new TF1("flS","[0]",0,NoctC + 1.);
-  TF1 *flQ = new TF1("flQ","[0]",0,NQuat + 1.);
+  TF1 *flO = new TF1("flO","[0]",-1,noct  + 1.);
+  TF1 *flS = new TF1("flS","[0]",-1,NoctC + 1.);
+  TF1 *flQ = new TF1("flQ","[0]",-1,NQuat + 1.);
   //-----------------------------------------------------------------------------------------------
   g1->Fit("flO","RMEQ","goff");
   g2->Fit("flQ","RMEQ","goff");
   g3->Fit("flS","RMEQ","goff");
   //-----------------------------------------------------------------------------------------------
   ofstream fout("./output_files/octval.dat");
-  fout << " Xasy  Asy   AsyEr  ResidFill (rel. to mean) " << flO->GetParameter(0) << endl;
+  fout << "Xasy  Asy   AsyEr  ResidFill (rel. to mean) " << flO->GetParameter(0) << endl;
   // Fill Residual histograms
   for(Int_t i = 0 ; i < noct ; i++){
         g1->GetPoint(i,Xasy,Asy);
@@ -2612,6 +2529,7 @@ void Plot_RawAsymmetries(TGraphErrors *g1,TGraphErrors *g2,TGraphErrors *g3,Int_
         hOctResid->Fill( (Asy - flO->GetParameter(0))/Asyer,1);
         fout << Xasy << " " << Asy << " " << Asyer << " " << (Asy-flO->GetParameter(0))/Asyer << endl;
   }
+  fout.close();
   for(Int_t i = 0 ; i < NQuat ; i++){
         g2->GetPoint(i,Xasy,Asy);
         Asyer = g2->GetErrorY(i);
@@ -2627,13 +2545,13 @@ void Plot_RawAsymmetries(TGraphErrors *g1,TGraphErrors *g2,TGraphErrors *g3,Int_
   pOctV->SetMargin(0.1,0.05,0.1,0.1);
   g1->GetYaxis()->SetTitleSize(0.08);
   g1->GetYaxis()->SetTitleOffset(0.5);
-  g1->GetYaxis()->SetRangeUser(0.03,0.07);
+  g1->GetYaxis()->SetRangeUser(0.04,0.06);
   g1->Draw("AP");
   g1->Fit("flO","RMEQ","");
   //------------------------------------------------------------------------------------------
   TLegend *legO = new TLegend(0.5,0.7,0.95,0.9);
   legO->AddEntry(g1,Form("A = %6.5f #pm %6.5f",flO->GetParameter(0),flO->GetParError(0)),"lp");
-  legO->AddEntry(g1,Form("#chi^{2}/#nu = %6.5f",flO->GetChisquare()/flO->GetNDF()),"");
+  legO->AddEntry(g1,Form("#chi^{2}/#nu = %6.5f/%i",flO->GetChisquare(),flO->GetNDF()),"");
   legO->AddEntry(g1,Form("Probability = %6.5f",flO->GetProb()),"");
   legO->SetFillColor(0);
   legO->Draw();
@@ -2642,14 +2560,14 @@ void Plot_RawAsymmetries(TGraphErrors *g1,TGraphErrors *g2,TGraphErrors *g3,Int_
   // Draw the Quartet Asymmetries
   pQutV->cd();
   pQutV->SetMargin(0.1,0.05,0.1,0.1);
-  g2->GetYaxis()->SetRangeUser(0.03,0.07);
+  g2->GetYaxis()->SetRangeUser(0.04,0.06);
   g2->GetYaxis()->SetTitleSize(0.08);
   g2->GetYaxis()->SetTitleOffset(0.5);
   g2->Draw("AP");
   g2->Fit("flQ","RMEQ","");
   TLegend *legQ = new TLegend(0.5,0.7,0.95,0.9);
   legQ->AddEntry(g2,Form("A = %6.5f #pm %6.5f",flQ->GetParameter(0),flQ->GetParError(0)),"lp");
-  legQ->AddEntry(g2,Form("#chi^{2}/#nu = %6.5f",flQ->GetChisquare()/flQ->GetNDF()),"");
+  legQ->AddEntry(g2,Form("#chi^{2}/#nu = %6.5f/%i",flQ->GetChisquare(),flQ->GetNDF()),"");
   legQ->AddEntry(g2,Form("Probability = %6.5f",flQ->GetProb()),"");
   legQ->SetFillColor(0);
   legQ->Draw();
@@ -2658,14 +2576,14 @@ void Plot_RawAsymmetries(TGraphErrors *g1,TGraphErrors *g2,TGraphErrors *g3,Int_
   // Draw the Super Ratio Asymmetries
   pSupV->cd();
   pSupV->SetMargin(0.1,0.05,0.1,0.1);
-  g3->GetYaxis()->SetRangeUser(0.03,0.07);
+  g3->GetYaxis()->SetRangeUser(0.04,0.06);
   g3->GetYaxis()->SetTitleSize(0.08);
   g3->GetYaxis()->SetTitleOffset(0.5);
   g3->Draw("AP");
   g3->Fit("flS","RMEQ","");
   TLegend *legS = new TLegend(0.5,0.7,0.95,0.9);
   legS->AddEntry(g3,Form("A = %6.5f #pm %6.5f",flS->GetParameter(0),flS->GetParError(0)),"lp");
-  legS->AddEntry(g3,Form("#chi^{2}/#nu = %6.5f",flS->GetChisquare()/flS->GetNDF()),"");
+  legS->AddEntry(g3,Form("#chi^{2}/#nu = %6.5f/%i",flS->GetChisquare(),flS->GetNDF()),"");
   legS->AddEntry(g3,Form("Probability = %6.5f",flS->GetProb()),"");
   legS->SetFillColor(0);
   legS->Draw();
@@ -2704,7 +2622,6 @@ void Average_A()
   TF1 *fbetaf2 = new TF1("fbetaf2",PoverE,0,2000,1);
   // Calculate the weighted average of the Asymmetry
   for(Int_t j = 0 ; j < noct ; j++){
-
 //    if(octet[j]->nA2[2] != 0 || octet[j]->nA5[2] != 0 )
       if(octet[j]->GetFirst() < 14888){
 	Average_All_Hists(octet[j]->hAsyA[2],y,yer);
@@ -3177,7 +3094,8 @@ void Collect_Rad()
   for(Int_t j = 0 ; j < noct ; j++){
     if(!(IsNaN(octet[j]->Asuper2[2]))){
       for(Int_t i = 0; i < 12 ; i++ ){
-	// Insure that the asymmetry is calculated for that bin
+	// Ensure that the asymmetry is calculated for that bin
+        cout << "Radial stuff" << j << " " << octet[j]->A_rad[i] << " " << octet[j]->A_rader[i] << endl;
 	if(octet[j]->A_rader[i] != 1 && !(IsNaN(octet[j]->A_rader[i])) && octet[j]->A_rader[i]>0 ){
           // sum the values divided by the error squared...
 	  //  cout << j << " " << i << "  "  << octet[j]->A_rad[i] << " +/- " << octet[j]->A_rader[i] << endl; 
@@ -3290,7 +3208,7 @@ void Collect_Energy_Spectra()
   Double_t Wtype23on  =  hWFlipperOn_2->Integral(nlow,nhigh)  / hWFlipperOn->Integral(nlow,nhigh);
   Double_t Wtype1off  =  hWFlipperOff_I->Integral(nlow,nhigh) / hWFlipperOff->Integral(nlow,nhigh);
   Double_t Wtype23off =  hWFlipperOff_2->Integral(nlow,nhigh) / hWFlipperOff->Integral(nlow,nhigh);
-  
+  cout << " TEST READS hEFlipper " << Etype1on << " " << Etype23on << endl;
   Double_t erEt1on    =  Etype1on*sqrt( hEFlipperOn_I->Integral(nlow,nhigh)/ east_time_on);
   Double_t erEt23on   =  Etype23on*sqrt( hEFlipperOn_2->Integral(nlow,nhigh)/ east_time_on);
   Double_t erEt1off   =  Etype1off*sqrt( hEFlipperOff_I->Integral(nlow,nhigh)/ east_time_off);
@@ -3397,19 +3315,16 @@ void Collect_Energy_Spectra()
     btr[3]->Load_Histograms(bckr[btr[3]->Bkg_index],1,0);
     btr[3]->GetEnergyChi();
 //    c1bk->cd(0);
-
+  
   DrawEnerPanel(hWFlipperOff  ,btr[3]->hEERef , c1bk,1,legSpc1,west_time_off);
-//  cout << "Events in/out of enerpanel " << btr[3]->hEERef->GetEntries() << " " << hWFlipperOff->GetEntries() << endl;
   c1bk->Print("output_files/e_spec_compares_w0.pdf");
  //   c1bk->cd(2);
   DrawEnerPanel(hWFlipperOff_I,btr[3]->hEERef1, c1bk,2,legSpc2,west_time_off);
-//  cout << "Events in/out of enerpanel " << btr[3]->hEERef1->GetEntries() << " " << hWFlipperOff_I->GetEntries() << endl;
   c1bk->Print("output_files/e_spec_compares_w1.pdf");
  //   c1bk->cd(3);
   DrawEnerPanel(hWFlipperOff_2,btr[3]->hEERef2, c1bk,3,legSpc3,west_time_off);
-//  cout << "Events in/out of enerpanel " << btr[3]->hEERef2->GetEntries() << " " << hWFlipperOff_2->GetEntries() << endl;
   c1bk->Print("output_files/e_spec_compares_w23.pdf");
-    btr[3]->Remove_Histograms(bckr[btr[3]->Bkg_index]);
+//    btr[3]->Remove_Histograms(bckr[btr[3]->Bkg_index]);
     btr[4]->Load_Histograms(bckr[btr[4]->Bkg_index],1,0);
     btr[4]->GetEnergyChi();
  //   c1bk->cd(4);
@@ -3421,7 +3336,7 @@ void Collect_Energy_Spectra()
  //   c1bk->cd(6);
   DrawEnerPanel(hWFlipperOn_2 ,btr[4]->hEERef2, c1bk,6,legSpc6,west_time_on);
   c1bk->Print("output_files/e_spec_compares_w23f.pdf");
-    btr[4]->Remove_Histograms(bckr[btr[4]->Bkg_index]);
+//    btr[4]->Remove_Histograms(bckr[btr[4]->Bkg_index]);
     btr[5]->Load_Histograms(bckr[btr[5]->Bkg_index],1,0);
     btr[5]->GetEnergyChi();
  //   c1bk->cd(7);
@@ -3433,22 +3348,19 @@ void Collect_Energy_Spectra()
  //   c1bk->cd(9);
   DrawEnerPanel(hEFlipperOff_2,btr[5]->hEERef2, c1bk,9,legSpc9,east_time_off);
   c1bk->Print("output_files/e_spec_compares_e23.pdf");
-    btr[5]->Remove_Histograms(bckr[btr[5]->Bkg_index]);
+//    btr[5]->Remove_Histograms(bckr[btr[5]->Bkg_index]);
     btr[6]->Load_Histograms(bckr[btr[6]->Bkg_index],1,0);
     btr[6]->GetEnergyChi();
  //   c1bk->cd(10);
   DrawEnerPanel(hEFlipperOn   ,btr[6]->hEERef , c1bk,10,legSpc10,east_time_on);
-  cout << "Events in/out of enerpanel " << btr[6]->hEERef->GetEntries() << " " << hEFlipperOn->GetEntries() << endl;
   c1bk->Print("output_files/e_spec_compares_e0f.pdf");
  //   c1bk->cd(11);
   DrawEnerPanel(hEFlipperOn_I ,btr[6]->hEERef1, c1bk,11,legSpc11,east_time_on);
-  cout << "Events in/out of enerpanel " << btr[6]->hEERef1->GetEntries() << " " << hEFlipperOn_I->GetEntries() << endl;
   c1bk->Print("output_files/e_spec_compares_e1f.pdf");
  //   c1bk->cd(12);
   DrawEnerPanel(hEFlipperOn_2 ,btr[6]->hEERef2, c1bk,12,legSpc12,east_time_on);
-  cout << "Events in/out of enerpanel " << btr[6]->hEERef2->GetEntries() << " " << hEFlipperOn_2->GetEntries() << endl;
   c1bk->Print("output_files/e_spec_compares_e23f.pdf");
-    btr[6]->Remove_Histograms(bckr[btr[6]->Bkg_index]);
+//    btr[6]->Remove_Histograms(bckr[btr[6]->Bkg_index]);
 
 //  c1bk->Print("output_files/e_spec_compares.pdf");
 
@@ -3460,7 +3372,6 @@ void Collect_Energy_Spectra()
     btr[1]->Remove_Histograms(bckr[btr[1]->Bkg_index]);
 */
   cout << " Filled Reference Histograms " << endl;
-
 
   delete legSpc1;  delete legSpc2;  delete legSpc3;  delete legSpc4;
   delete legSpc5;  delete legSpc6;  delete legSpc7;  delete legSpc8;
@@ -3523,7 +3434,9 @@ void Collect_Energy_Spectra()
 
     btr[1]->Load_Histograms(bckr[btr[1]->Bkg_index],1,0);
     btr[1]->GetEnergyChi();
-    btr[1]->hEERef->Scale(hEFlipperOn->Integral(1,80)/btr[1]->hEERef->Integral(1,80));
+    // TO MAKE THIS WORK, I changed the flipper-on integral bounds from
+    //  1-80 to nlow-nhigh. 1-80 is undefined for the definition given.
+    btr[1]->hEERef->Scale(hEFlipperOn->Integral(nlow,nhigh)/btr[1]->hEERef->Integral(nlow,nhigh));
     btr[1]->hEERef1->Scale(1./btr[1]->hEERef1->Integral(1,80));
     btr[1]->hEERef2->Scale(1./btr[1]->hEERef2->Integral(1,80));
    for(Int_t i = 0 ; i < 80 ; i++){
@@ -3579,6 +3492,10 @@ void Collect_Energy_Spectra()
   }
   
     btr[1]->Remove_Histograms(bckr[btr[1]->Bkg_index]);
+    btr[3]->Remove_Histograms(bckr[btr[3]->Bkg_index]);
+    btr[4]->Remove_Histograms(bckr[btr[4]->Bkg_index]);
+    btr[5]->Remove_Histograms(bckr[btr[5]->Bkg_index]);
+    btr[6]->Remove_Histograms(bckr[btr[6]->Bkg_index]);
 
   TGraphErrors *gEO0 = new TGraphErrors(80,x1,chiE0on,x1er,sig);
   ColorGraphic(gEO0,2,20,2,0.8,"East AFP On","Energy (keV)","#sigma");
@@ -3613,23 +3530,23 @@ void Collect_Energy_Spectra()
   
   cETChi->cd(1);
   gEO0->Draw("AP");
-  gEO1->Draw("P");
-  gEO2->Draw("P");
+  gEO1->Draw("P same");
+  gEO2->Draw("P same");
   
   cETChi->cd(2);
   gEF0->Draw("AP");
-  gEF1->Draw("P");
-  gEF2->Draw("P");
+  gEF1->Draw("P same");
+  gEF2->Draw("P same");
   
   cETChi->cd(3);
   gWO0->Draw("AP");
-  gWO1->Draw("P");
-  gWO2->Draw("P");
+  gWO1->Draw("P same");
+  gWO2->Draw("P same");
   
   cETChi->cd(4);
   gWF0->Draw("AP");
-  gWF1->Draw("P");
-  gWF2->Draw("P");
+  gWF1->Draw("P same");
+  gWF2->Draw("P same");
   
   cETChi->Print("output_files/EnergyChi.pdf");
 /*

@@ -182,7 +182,7 @@ Bool_t Run::OpenRun(Int_t n)
   const char* filepath = getenv("UCNAOUTPUTDIR"); 
   const char* author   = getenv("UCNA_ANA_AUTHOR");
   cout << "Attempting to open run spec_"<< n << ".root" << endl;
-  f1     = new TFile(Form("%s/hists/spec_%d.root",filepath,n),"READ");
+  f1     = new TFile(Form("%s/spec_%d.root",filepath,n),"READ");
   //fHisto = new TFile(Form("%s/hists/hists_%d.root",filepath,n),"UPDATE");
 //  if(fHisto->IsOpen()) fHisto->Close();
   fHisto = new TFile(Form("/home/jwwexler/robbyWork/histOut/hists_%d.root",n),"UPDATE");
@@ -213,7 +213,7 @@ Int_t Run::Scale2Time(Int_t nex,Int_t nwx)
     cout << "Scaling to Run time " << endl;
     cout << "Counts East " << heqC->Integral(nlow,nhigh) << endl;
     cout << "Counts West " << hwqC->Integral(nlow,nhigh) << endl;
-    
+   
     ScaleList(HEastAn,rtime_e);
     ScaleList(HWestAn,rtime_w);
   
@@ -665,7 +665,7 @@ void  Run::ReConnect(TSQLServer *sql)
 //--------------------------------------------------------------------------
 Int_t Run::SetRunTime(TSQLServer *sql)
 {
-  
+   
   // read in the analysis database location. 
   // Check connection
   if(!(sql->IsConnected()))ReConnect(sql);
@@ -681,11 +681,47 @@ Int_t Run::SetRunTime(TSQLServer *sql)
   // Send Query to Database;
   res = (TSQLResult*)sql->Query(buffer);
   // loop through results
+ 
   if(res->GetRowCount() != 0){
     while((row = (TSQLRow*)res->Next())){
       // Set east and west live times
       rtime_e = atof(row->GetField(0));
       rtime_w = atof(row->GetField(1));
+
+  TString fileTime = "~/robbyWork/output_files/timeList.dat";
+  ofstream finTime(fileTime, ios::out | ios::app);
+  const char* filepath = getenv("UCNAOUTPUTDIR"); 
+  f1     = new TFile(Form("%s/spec_%d.root",filepath,runnum),"READ");
+  t1 = (TTree*)f1->Get("phys");
+//  t1->SetBranchStatus("*",1);
+  Float_t tEi, tWi, tEo;
+  t1->SetBranchAddress("TimeE",&tEi);
+  t1->SetBranchAddress("TimeW",&tWi);
+//  t1->SetBranchAddress("oldTimeE",&tEo);
+  Int_t entries = t1->GetEntries(); 
+  t1->GetEntry(entries-1);
+  rtime_e=tEi; rtime_w=tWi; rtime_eO=tEi;
+
+/*  tStartE=0; tEndE=100000; tStartW=0; tEndW=100000;
+  hmr1=(TH1F*)f1->Get("UCN_Mon_4_Rate");
+  Float_t tWsta=hmr1->GetNbinsX(); Float_t tEsta=tWsta;
+  for(Int_t binX=1; binX<hmr1->GetNbinsX(); binX++){
+    if(hmr1->GetBinContent(binX)<1.0){
+      tWsta--; tEsta--; 
+    }
+  }
+  if(tWsta>5){ 
+    rtime_e*=(tEsta)/(hmr1->GetNbinsX());
+    rtime_w*=(tWsta)/(hmr1->GetNbinsX());
+  }
+  delete hmr1; */
+  finTime << runnum << "\t" << rtime_e << "\t" << rtime_w << endl;
+//  rtime_e=1.; rtime_w=1.;  /// TERRIBLE COLDING
+//  t1->GetEntry(0);
+//  rtime_e-=tEi; rtime_w-=tWi;
+  f1->Close();
+  finTime.close();
+/* */
       cout << "Run : " << runnum << " West live time " << rtime_w << " East live time " << rtime_e << endl;
       // Check flipper status
       if(!strncmp(row->GetField(3),"On",5))flipper = 1;
@@ -698,7 +734,6 @@ Int_t Run::SetRunTime(TSQLServer *sql)
       delete row;
     }
   }
-
   delete res;
   return flipper;
 }
@@ -768,6 +803,12 @@ Int_t Run::SetBranches()
   t1->SetBranchAddress("EMWPC_E"     ,&EastMWPCEnergy);
   t1->SetBranchAddress("EMWPC_W"     ,&WestMWPCEnergy);
 
+  t1->SetBranchAddress("xeRC"        ,&xeRC);
+  t1->SetBranchAddress("yeRC"        ,&yeRC);
+  t1->SetBranchAddress("xwRC"        ,&xwRC);
+  t1->SetBranchAddress("ywRC"        ,&ywRC);
+//  t1->SetBranchAddress("nClipped"     ,&nClipped);
+//  t1->SetBranchAddress("badTimeFlag"     ,&badBeam);
   return 0;
 }
 
@@ -805,40 +846,74 @@ Int_t Run::Book_Raw(Int_t entry)
   // Evis. Since if the wire chamber cut fails we don't get a reliable energy calibration   |
   // in the replay.									    |
   //----------------------------------------------------------------------------------------+
+//  if(badBeam) return 0;
+
   Float_t Esum = Etrue;  // Not really a difference between the scaling and using Evis so 
   Float_t Wsum = Etrue;  // will use Evis 
   //----------------------------------------------------------------------------------------
+// if(TimeE<rtime_e/1. && TimeW<rtime_w/1.){  // TERRIBLE CODING
   if(PID != 2){  // Require DeltaT > 30 to remove after pulsing and PID != 2 
                                     // DeltaT cut removed for 2010 analysis
     if( Sis00 == 1 && East_Rad < RAD){ // removes the muons....
       hENoMWPC->Fill(Esum,1.);
-      if(PID == 0 )hEMWPC->Fill(Esum,1.);
+      if(PID == 1 )hEMWPC->Fill(Esum,1.);
     }
     if( Sis00 == 2 && West_Rad < RAD){
       hWNoMWPC->Fill(Wsum,1.);
       if(PID == 1 )hWMWPC->Fill(Wsum,1.);
     }
   }
+
+////////////  DEPRECATED TEST CUTS - Post-replay cuts on beam down
+
+//  if(TimeE<2000 && runnum==17753) return 0;
+
+//  if(TimeE<tStartE || TimeE>tEndE || TimeW<tStartW || TimeW>tEndW) return 0;
+
+/*  for(Int_t binX=1; binX<hmr1->GetNbinsX(); binX++){
+   if(  (TimeE/fEast_TDC_Scale<hmr1->GetBinCenter(binX)+hmr1->GetBinWidth(binX)/2.)
+     && (TimeE/fEast_TDC_Scale>hmr1->GetBinCenter(binX)-hmr1->GetBinWidth(binX)/2.)){
+    if(hmr1->GetBinContent(binX)<1.5)  return 0;
+    else break;
+   }
+  }  */
+///////////////////  END TEST CUTS
+
   //------------------------------------------------------------------------------------------
   // Make radial cut ....Require one side to be inside the radial cut.
-  if((East_Rad > RAD && West_Rad > RAD ) )return 0;
+  //if((East_Rad > RAD && West_Rad > RAD ) )return 0;
+
+//  if( East_Rad > RAD || West_Rad > RAD || EastX.nClipped || WestX.nClipped || WestY.nClipped || EastY.nClipped )return 0;
+
+//  if(!(East_Rad < RAD && West_Rad < RAD) || (EastX.nClipped || WestX.nClipped || WestY.nClipped || EastY.nClipped) )return 0;
+  if(!(East_Rad < RAD && West_Rad < RAD) )return 0;
+  //if(!(East_Rad < RAD && West_Rad < RAD ) )return 0;
   passed2++;
   //--------------------------------------------------------------------------------------
  // SetMultiplicity();
   // If a valid data stream event determine the event type.
   if((PID == 1) && Type == 0 && Side == 0 && East_Rad < RAD){
-    // East Type 0 (no West side MWPC trigger)
-    Handle_East_Type_0(entry);
+    // East Type 0 (no West side MWPC trigger
+//    cout << "East " << EastX.nClipped << " " << EastY.nClipped << " " << xeRC << " " << yeRC << endl;
+    if(EastX.nClipped==0 && EastY.nClipped==0 &&(xeRC>0 && xeRC<7) && (yeRC>0 && yeRC<7)) 
+//      if((xeRC>0 && xeRC<7) && (yeRC>0 && yeRC<7)) 
+	Handle_East_Type_0(entry);
   } else if((PID == 1) && Type == 0 && Side == 1 && West_Rad < RAD){
     // West Type 0 (no East side MWPC trigger)
-    Handle_West_Type_0(entry);
-  } else if((PID == 1) && Type > 0 ){
+    if(WestX.nClipped==0 && WestY.nClipped==0 && (xwRC>0 && xwRC<7) && (ywRC>0 && ywRC<7)) 
+//      if((xwRC>0 && xwRC<7) && (ywRC>0 && ywRC<7)) 
+	Handle_West_Type_0(entry);
+  } else if((PID == 1) && Type > 0 && East_Rad<RAD && West_Rad<RAD){
     // if both MWPC above threshold then must be a backscatter.
-    Handle_Backscatters(entry);
+    if(EastX.nClipped==0 && EastY.nClipped==0 && WestX.nClipped==0 && WestY.nClipped==0 && (xeRC<7 && xeRC>0) && (yeRC>0 && yeRC<7) && (xwRC>0 && xwRC<7) &&(ywRC>0 && ywRC<7) ) 
+//      if((xeRC<7 && xeRC>0) && (yeRC>0 && yeRC<7) && (xwRC>0 && xwRC<7) &&(ywRC>0 && ywRC<7) ) 
+	Handle_Backscatters(entry);
+//    else cout << "BScatt Clip " << EastX.nClipped << EastY.nClipped << WestX.nClipped << WestY.nClipped << endl;
   }
   
   if(PID!=2) Count_Time_All();
   if(PID==1) Count_Time_Beta();
+// } // Mate to time check
   return -1;
 }
 //------------------------------------------------------------------------
@@ -866,9 +941,9 @@ Int_t Run::Handle_East_Type_0(Int_t entry)
   // Fill the 1-d Energy historgrams
   ReconEnergy(&EvisE,0);
   // fill Radial 
-  Double_t rad = sqrt(EastX.center*EastX.center + EastY.center*EastY.center);
+  Double_t radiii = sqrt(EastX.center*EastX.center + EastY.center*EastY.center);
   for(Int_t i = 0 ; i < 12 ; i++)
-    if(rad > i*5 && rad < (i+1)*5)hERad[i]->Fill(Etrue,1.);
+    if(radiii > i*5 && radiii < (i+1)*5)hERad[i]->Fill(Etrue,1.);
      
   // Fill Asymmetry Histograms...
   if(GetRunNumber() == 8300)cout << "Passed Choice D : " << entry << "   "  << EvisE << endl;
@@ -885,7 +960,9 @@ Int_t Run::Handle_East_Type_0(Int_t entry)
   // fill the position histogram for all events
   hpe->Fill(EastX.center,EastY.center,1);
   // fill a 2x2 grid histogram for the asymmetry calculation
+  if(radiii>RAD)cout << "East " << radiii << " " << EastX.center << " " << EastY.center << endl;
   hApose->Fill(EastX.center,EastY.center);
+  //cout << "////////////////////////////////" << endl;
   // Fill Multiplicity Plot
   hEType0_Multi->Fill((Float_t)(EastX.mult + EastY.mult),1.);
   hEAnode->Fill(EastMWPCEnergy,1.);
@@ -900,12 +977,12 @@ Int_t Run::Handle_West_Type_0(Int_t entry)
   
   ReconEnergy(&EvisW,0);
   
-  Double_t rad = sqrt(WestX.center*WestX.center + WestY.center*WestY.center);
+  Double_t radiii = sqrt(WestX.center*WestX.center + WestY.center*WestY.center);
 
  // Hack for preNSAC analysis Etrue = 750./800. * Etrue;
   
   for(Int_t i = 0 ; i < 12 ; i++){
-    if(rad > i*5 && rad < (i+1)*5){
+    if(radiii > i*5 && radiii < (i+1)*5){
       hWRad[i]->Fill(Etrue,1.);
     }
   }
@@ -923,7 +1000,9 @@ Int_t Run::Handle_West_Type_0(Int_t entry)
   hw3->Fill(Wscint.q3);
   hw4->Fill(Wscint.q4);
   hpw->Fill(WestX.center,WestY.center,1);
+  if(radiii>RAD)cout << "West " << radiii << " " << WestX.center << " " << WestY.center << endl;
   hAposw->Fill(WestX.center,WestY.center);
+  //cout << "////////////////////////////////" << endl;
   hWType0_Multi->Fill((Float_t)(WestX.mult + WestY.mult),1.);
   hWAnode->Fill(WestMWPCEnergy,1.);
   
@@ -1703,7 +1782,7 @@ void Run::Diagnosis_Run()
   cout << "  Total Measured Rate : " << heq->Integral() + hwq->Integral() << " s^-1 " << endl;
   cout << "  -----------------------------------------------------------" << endl;
   cout << "  Backscatter Type \t East \t\t West " << endl;
-//  cout << "  Type 0 \t \t"<< heqE->Integral() << "\t\t" << hwqE->Integral() << endl;
+  cout << "  Type 0 \t \t"<< heqE->Integral() << "\t\t" << hwqE->Integral() << endl;
   cout << "  Type 1 \t \t"<< hEtype_1->Integral()  << "\t"<< hWtype_1->Integral() << endl;
   cout << "  Type 23\t \t"<< hEtype_23->Integral() << "\t"<< hWtype_23->Integral() << endl;
   cout << "  -----------------------------------------------------------" << endl;

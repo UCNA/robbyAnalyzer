@@ -223,6 +223,9 @@ Double_t Octet::Calc_A_multi()
     if(nB10w[j]== 0 ) nB10w[j] = 1.;
    
     // Multiply Rates
+
+//    if(j==0) cout << "TEST B " << nB2[j] << " " << nB5[j] << " "<< nB7[j] << " " << nB10[j];
+//    if(j==0) cout << " " << nB2w[j] << " " << nB5w[j] << " "<< nB7w[j] << " " << nB10w[j] << endl;
     RB1 = nB2[j]  * nB10[j];
     RB2 = nB5w[j] * nB7w[j];
     RB3 = nB5[j]  * nB7[j];
@@ -277,7 +280,9 @@ Double_t Octet::Calc_A_multi()
     
     A_multi[j] = (1. - RR)/(1. + RR);
     A_multier[j] = (2./pow)*(RR/Power((1.+ RR),2))*sqrt(ersumB + ersumA);
-   
+  
+//    if(j==0) cout << "TEST " << A_multi[j] << " " << A_multier[j] << " " << RR << " " << RA1 << " " << RA2 << " " << RA3 << " " << RA4 << " " << RB1 << " " << RB2 << " " << RB3 << " " << RB4 << endl;
+ 
     //cout << "OctetFill " << RR << " " << A_multi[j] << " " << A_multier[j] << " " << ersumB << " " << ersumA << endl;
  
     pow = 0.;
@@ -371,11 +376,12 @@ Double_t Octet::Calc_A_sum(){
 			     nB2[j],tB2,nB2b[j],tB2b,nB10[j] ,tB10 ,nB10b[j] ,tB10b,0);
 			       
   // Finished with Quartet Asymmetries.....
-    RA1 = ( RA1 != 1. ) ? RA1 : 1.; RA2 = ( RA2 != 1. ) ? RA2 : 1.;
-    RA3 = ( RA3 != 1. ) ? RA3 : 1.; RA4 = ( RA4 != 1. ) ? RA4 : 1.;
+    RA1 = ( RA1 != 0. ) ? RA1 : 1.; RA2 = ( RA2 != 0. ) ? RA2 : 1.;
+    RA3 = ( RA3 != 0. ) ? RA3 : 1.; RA4 = ( RA4 != 0. ) ? RA4 : 1.;
 
     RR  = (RA1*RA2)/(RA3*RA4);
     
+
     er1 = ErrorSum(nA2[j] ,nA10[j] ,nB5[j] ,nB7[j]  ,tA2 ,tA10 ,tB5 ,tB7,
 		   nA2b[j] ,nA10b[j] ,nB5b[j] ,nB7b[j]  ,tA2b ,tA10b ,tB5b ,tB7b,0);
     
@@ -401,10 +407,89 @@ Double_t Octet::Calc_A_sum(){
       A_sumer[j] =1.;
     }
     
+    //if(j==0) cout << "RA1-4, RR " << RA1 << " " << RA2 << " " << RA3 << " " << RA4 << " " << RR << " " << A_sum[0] << endl;
     //if(j==2)cout << "Octet asymmetry " << A_sum[j] <<  "  " << A_sumer[j] <<endl;
   }
   
   return 0.;
+}
+
+void Octet::Calc_A_bin(){
+
+  Double_t xBin[2000],xBinErr[2000];
+  Double_t AAa[200], AAaE[200];
+  Int_t binC=0;
+
+  TGraphErrors *gAsymCalc;
+  TF1 *aFit;
+
+ for(Int_t AT=0; AT<2; AT++){
+  binC=0;
+  for(Int_t bin=nlow; bin<nhigh+1; bin++){
+    xBin[binC]=(bin+.5)*10.; xBinErr[binC]=0;
+    sfOn[binC][0]=Octet::Calc_R_bin(hB2[AT],hB10[AT],hA5[AT],hA7[AT],bin);
+    sfOnErr[binC][0]=Octet::Calc_Rerr_bin(hB2[AT],hB10[AT],hA5[AT],hA7[AT],bin);
+
+    sfOn[binC][1]=Octet::Calc_R_bin(hB2w[AT],hB10w[AT],hA5w[AT],hA7w[AT],bin);
+    sfOnErr[binC][1]=Octet::Calc_Rerr_bin(hB2w[AT],hB10w[AT],hA5w[AT],hA7w[AT],bin);
+
+    sfOff[binC][0]=Octet::Calc_R_bin(hA2[AT],hA10[AT],hB5[AT],hB7[AT],bin);
+    sfOffErr[binC][0]=Octet::Calc_Rerr_bin(hA2[AT],hA10[AT],hB5[AT],hB7[AT],bin);
+
+    sfOff[binC][1]=Octet::Calc_R_bin(hA2w[AT],hA10w[AT],hB5w[AT],hB7w[AT],bin);
+    sfOffErr[binC][1]=Octet::Calc_Rerr_bin(hA2w[AT],hA10w[AT],hB5w[AT],hB7w[AT],bin);
+
+    RRa[binC]= (sfOff[binC][0]*sfOn[binC][1]) / (sfOn[binC][0]*sfOff[binC][1]);
+    RRaErr[binC] = 1/(sfOffErr[binC][0]*sfOffErr[binC][0]);
+    RRaErr[binC] += 1/(sfOffErr[binC][1]*sfOffErr[binC][1]);
+    RRaErr[binC] += 1/(sfOnErr[binC][0]*sfOnErr[binC][0]);
+    RRaErr[binC] += 1/(sfOnErr[binC][1]*sfOnErr[binC][1]);
+    RRaErr[binC] = 1/sqrt(RRaErr[binC]);
+
+    A_binSum[binC] = (1-sqrt(RRa[binC]))/(1+sqrt(RRa[binC]));
+    A_binSumErr[binC] = RRaErr[binC]/(sqrt(std::abs(RRa[binC]))*TMath::Power((sqrt(std::abs(RRa[binC]))+1.),2));
+  
+    AAa[binC]=A_binSum[binC];
+    AAaE[binC]=A_binSumErr[binC];
+ 
+    binC++;
+
+  }
+  //TGraphErrors *gAsymCalc = new TGraphErrors(nhigh-nlow,xBin,A_binSum,xBinErr,A_binSumErr);
+  gAsymCalc = new TGraphErrors(nhigh-nlow,xBin,AAa,xBinErr,AAaE);
+  aFit = new TF1("aFit","pol0",170,790);
+  gAsymCalc->Fit(aFit,"Q");
+  A_bin[AT] = aFit->GetParameter(0);
+  A_binErr[AT] = aFit->GetParError(0);
+ }
+}
+
+double Octet::Calc_R_bin(TH1F *hA2, TH1F *hA10, TH1F *hB5, TH1F *hB7, Int_t bin){
+   Double_t nSum=0; Double_t denom=0;
+      if(hA2->GetBinContent(bin)>0 && hA2->GetBinError(bin)>0){   nSum+=hA2->GetBinContent(bin)/(hA2->GetBinError(bin)*hA2->GetBinError(bin));
+        denom+= 1./(hA2->GetBinError(bin)*hA2->GetBinError(bin));   }
+      if(hA10->GetBinContent(bin)>0 && hA10->GetBinError(bin)>0){   nSum+=hA10->GetBinContent(bin)/(hA10->GetBinError(bin)*hA10->GetBinError(bin));
+        denom+= 1./(hA10->GetBinError(bin)*hA10->GetBinError(bin));   }
+      if(hB5->GetBinContent(bin)>0 && hB5->GetBinError(bin)>0){   nSum+=hB5->GetBinContent(bin)/(hB5->GetBinError(bin)*hB5->GetBinError(bin));
+        denom+= 1./(hB5->GetBinError(bin)*hB5->GetBinError(bin));   }
+      if(hB7->GetBinContent(bin)>0 && hB7->GetBinError(bin)>0){   nSum+=hB7->GetBinContent(bin)/(hB7->GetBinError(bin)*hB7->GetBinError(bin));
+        denom+= 1./(hB7->GetBinError(bin)*hB7->GetBinError(bin));   }
+
+      return (nSum/denom);
+}
+
+double Octet::Calc_Rerr_bin(TH1F *hA2, TH1F *hA10, TH1F *hB5, TH1F *hB7, Int_t bin){
+   Double_t denom=0;
+      if(hA2->GetBinContent(bin)>0 && hA2->GetBinError(bin)>0){
+        denom+= 1./(hA2->GetBinError(bin)*hA2->GetBinError(bin));   }
+      if(hA10->GetBinContent(bin)>0 && hA10->GetBinError(bin)>0){
+        denom+= 1./(hA10->GetBinError(bin)*hA10->GetBinError(bin));   }
+      if(hB5->GetBinContent(bin)>0 && hB5->GetBinError(bin)>0){
+        denom+= 1./(hB5->GetBinError(bin)*hB5->GetBinError(bin));   }
+      if(hB7->GetBinContent(bin)>0 && hB7->GetBinError(bin)>0){
+        denom+= 1./(hB7->GetBinError(bin)*hB7->GetBinError(bin));   }
+
+      return (1/denom);
 }
 
 void Octet::Get_Rad_A()
@@ -415,11 +500,10 @@ using namespace TMath;
   Double_t RR;
   
   for(Int_t i = 0 ; i < 12 ; i++){
-   
+  /* 
     R1 = (A2rad[i]!=0) ? A2rad[i]/tA2 : 0;
     R1 += (A10rad[i]!=0) ? A10rad[i]/tA10 : 0;
     if(R1 == 0)R1=1;
-
     R2 = (A5wrad[i]!=0) ? A5wrad[i]/tA5w : 0;
     R2 += (A7wrad[i]!=0) ? A7wrad[i]/tA7w : 0;
     if(R2 == 0) R2 = 1.;
@@ -428,52 +512,80 @@ using namespace TMath;
     R3 += (A7rad[i]!=0) ? A7rad[i]/tA7 : 0;
     if(R3 == 0)R3 = 1.;
     R4 = (A2wrad[i]!=0) ? A2wrad[i]/tA2w : 0;
-    RR += (A10wrad[i]!=0) ?  A10wrad[i]/tA10w : 0;
+    R4 += (A10wrad[i]!=0) ?  A10wrad[i]/tA10w : 0;
+    if(R4 == 0)R4 = 1.;
+*/
+    R1 = (A2rad[i]!=0) ? A2rad[i] : 0;
+    R1 += (A10rad[i]!=0) ? A10rad[i] : 0;
+    if(R1 == 0)R1=1;
+    R2 = (A5wrad[i]!=0) ? A5wrad[i] : 0;
+    R2 += (A7wrad[i]!=0) ? A7wrad[i] : 0;
+    if(R2 == 0) R2 = 1.;
+
+    R3 = (A5rad[i]!=0) ? A5rad[i] : 0;
+    R3 += (A7rad[i]!=0) ? A7rad[i] : 0;
+    if(R3 == 0)R3 = 1.;
+    R4 = (A2wrad[i]!=0) ? A2wrad[i] : 0;
+    R4 += (A10wrad[i]!=0) ?  A10wrad[i] : 0;
     if(R4 == 0)R4 = 1.;
 
     TotRadCounts[i] = A2rad[i] + A10rad[i] + A5rad[i] + A7rad[i] 
                    + A5wrad[i] + A7wrad[i] + A2wrad[i] + A10wrad[i];
-  
-    er1 = A2rade[i]*A2rade[i]   + A10rade[i]*A10rade[i];
-    er2 = A5rade[i]*A5rade[i]   + A7rade[i]*A7rade[i];
-    er3 = A5wrade[i]*A5wrade[i] + A7wrade[i]*A7wrade[i];
-    er4 = A2wrade[i]*A2wrade[i] + A10wrade[i]*A10wrade[i];
-
-    // cout << R1 << "\t" << R2 << "\t" <<R3 <<"\t"<< R4 << endl;
-
+    er1=0; er2=0; er3=0; er4=0; 
+    if(A2rad[i]!=0) er1 += A2rade[i]*A2rade[i]   ;
+    if(A10rad[i]!=0) er1 += A10rade[i]*A10rade[i];
+    if(A5rad[i]!=0) er2 += A5rade[i]*A5rade[i]  ;
+    if(A7rad[i]!=0) er2 += A7rade[i]*A7rade[i];
+    if(A5wrad[i]!=0) er3 += A5wrade[i]*A5wrade[i]; 
+    if(A7wrad[i]!=0) er3+= A7wrade[i]*A7wrade[i];
+    if(A2wrad[i]!=0) er4 += A2wrade[i]*A2wrade[i] ;
+    if(A10wrad[i]!=0) er4+= A10wrade[i]*A10wrade[i];
     ersum = er1/(R1*R1) + er2/(R2*R2) + er3/(R3*R3) + er4/(R4*R4);
-  
     RR = Abs((R1*R2)/(R3*R4));
   
+//    cout << "Aoct" << i << " " << er1 << " " << R1 << " " << er2 << " " << R2 << " " << er3 << " " << R3 << " " << er4 << " " << R4 << " " << RR << " " << sqrt(ersum) << endl;
     if(IsNaN(RR) || IsNaN(ersum)){
        RR    = 0.;     
        ersum = 1.;
        A_rad[i]   =  0.;
-       A_rader[i] = 0.1;
+       A_rader[i] = 1.;
     } else {
       A_rad[i]   = (1. - sqrt(RR))/(1. + sqrt(RR));
       A_rader[i] =  sqrt(RR)/Power((1. + sqrt(RR)),2) * sqrt(ersum);
+     // A_rader[i] =  (sqrt(ersum)/(2*sqrt(RR)*(1+sqrt(RR))))*sqrt(1+A_rad[i]*A_rad[i]);
     }
   }
   
   for(Int_t i = 0 ; i < 12; i++){
-
+/*
     R1 = (B2rad[i]!=0) ? B2rad[i]/tB2 : 0;
     R1 += (B10rad[i]!=0) ? B10rad[i]/tB10 : 0;
     if(R1 == 0)R1=1;
-
     R2 = (B5wrad[i]!=0) ? B5wrad[i]/tB5w : 0;
     R2 += (B7wrad[i]!=0) ? B7wrad[i]/tB7w : 0;
     if(R2 ==0) R2 = 1.;
 
     R3 = (B5rad[i]!=0) ? B5rad[i]/tB5 : 0;
     R3 += (B7rad[i]!=0) ? B7rad[i]/tB7 : 0;
-
     if(R3 == 0)R3 = 1.;
     R4 = (B2wrad[i]!=0) ? B2wrad[i]/tB2w : 0;
     R4 += (B10wrad[i]!=0) ?  B10wrad[i]/tB10w : 0;
     if(R4 == 0)R4 = 1.;
- 
+ */
+    R1 = (B2rad[i]!=0) ? B2rad[i] : 0;
+    R1 += (B10rad[i]!=0) ? B10rad[i] : 0;
+    if(R1 == 0)R1=1;
+    R2 = (B5wrad[i]!=0) ? B5wrad[i] : 0;
+    R2 += (B7wrad[i]!=0) ? B7wrad[i] : 0;
+    if(R2 ==0) R2 = 1.;
+
+    R3 = (B5rad[i]!=0) ? B5rad[i] : 0;
+    R3 += (B7rad[i]!=0) ? B7rad[i] : 0;
+    if(R3 == 0)R3 = 1.;
+    R4 = (B2wrad[i]!=0) ? B2wrad[i] : 0;
+    R4 += (B10wrad[i]!=0) ?  B10wrad[i] : 0;
+    if(R4 == 0)R4 = 1.;
+
     TotRadCounts[i] += B2rad[i] + B10rad[i] + B5rad[i] + B7rad[i] 
                      + B5wrad[i] + B7wrad[i] + B2wrad[i] + B10wrad[i];
    
@@ -481,7 +593,7 @@ using namespace TMath;
     er2 = B5rade[i]*B5rade[i]   + B7rade[i]*B7rade[i];
     er3 = B5wrade[i]*B5wrade[i] + B7wrade[i]*B7wrade[i];
     er4 = B2wrade[i]*B2wrade[i] + B10wrade[i]*B10wrade[i];
-    //cout << R1 << "\t" << R2 << "\t" <<R3 <<"\t"<< R4 << endl;
+    //ersum = er1/(R1*R1) + er2/(R2*R2) + er3/(R3*R3) + er4/(R4*R4);
     ersum = er1/(R1*R1) + er2/(R2*R2) + er3/(R3*R3) + er4/(R4*R4);
   
     RR = Abs((R1*R2)/(R3*R4));
@@ -494,6 +606,7 @@ using namespace TMath;
       A_rad[i]   = (A_rad[i] + Abs((1. - sqrt(RR))/(1. + sqrt(RR))))/2.;
       A_rader[i] = sqrt(1./(1./(A_rader[i]*A_rader[i]) +
                        1./(RR/Power((1. + sqrt(RR)),4) * ersum)));
+      //A_rader[i] = sqrt(A_rader[i]*A_rader[i] + Power((sqrt(ersum)/(2*sqrt(RR)*(1+sqrt(RR))))*sqrt(1+A_rad[i]*A_rad[i]),2)  );
     }
   }
 
@@ -801,6 +914,7 @@ void Octet::Find_Runs(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bck,Int_t
      }  else if(!strcmp(bta[i]->octtype,"b5") || !strcmp(bta[i]->octtype,"B5")){
        B5.push_back(bta[i]->GetRunNumber());
        B4.push_back(bta[i]->GetBackgroundRun());
+
        
        for(Int_t j = 0 ; j < 9 ; j++){
 	  Int_t nlast = 7;
@@ -926,7 +1040,6 @@ void Octet::Find_Runs(std::vector<Beta_Run *>bta,std::vector<Bck_Run *>bck,Int_t
   tB10w = ( tB10w !=0) ? tB10w : 1;
   
   GetIntegralCounts();
-
 }
 //-----------------------------------------------------------------------------------------
 void Octet::Fill(TH1F *h,TH1F *h2,Double_t t1,Double_t* t2,Int_t inc)
@@ -1087,8 +1200,8 @@ void Octet::Fill_Rad(Double_t *x1,Double_t *x1e,Float_t *x2,Float_t *x2e,Float_t
   using namespace TMath;
   
   for(Int_t j = 0 ; j < 12 ; j++){
-    x1[j]  += x2[j]*t1;
-    x1e[j]  = (!IsNaN(x2e[j])) ? x2e[j] : 0; 
+    x1[j]  += x2[j]/t1;
+    x1e[j]  = (!IsNaN(x2e[j])) ? x2e[j]/t1 : 0; 
   }
  
 }
@@ -1198,7 +1311,7 @@ Double_t Octet::ErrorSum(Double_t n1,Double_t n2,Double_t n3,Double_t n4,
   }
   
   for(Int_t i = 0 ; i < (int)rate.size() ; i++){
-    sig += 1./((rate[i] + bck[i])/t[i] + bck[i]/tb[i]);
+    sig += 1./((rate[i] + bck[i])/t[i] + bck[i]/tb[i]);  //DBSF
   };
   
   er = 1./sqrt(sig);
@@ -1519,8 +1632,14 @@ Double_t Octet::Average_Octet_Rate(Double_t r1,Double_t t1,Double_t b1,Double_t 
 				   Double_t r3,Double_t t3,Double_t b3,Double_t tb3,
 				   Double_t r4,Double_t t4,Double_t b4,Double_t tb4,Int_t side)
 {
-  
-  
+ /* 
+  cout << "//////////////////////////////" << endl; 
+  cout << "R1-4, T1-4: " << endl;
+  cout << r1 << "\t" << t1 << endl;
+  cout << r2 << "\t" << t2 << endl;
+  cout << r3 << "\t" << t3 << endl;
+  cout << r4 << "\t" << t4 << endl;
+ */
   // average the rates for an entree in the quartet super ratio
   // if t1 or t2 is 0 then that run is missing so return the rate
   // of the existing run as the correct average.
@@ -1562,8 +1681,10 @@ Double_t Octet::Average_Octet_Rate(Double_t r1,Double_t t1,Double_t b1,Double_t 
   }
   
   for(Int_t i = 0 ; i < (int)rate.size() ; i++){
-    ave += rate[i]*t[i];
-    sig += t[i];
+//    ave += rate[i]*t[i]; // original code
+//    sig += t[i];
+    ave += rate[i]/((rate[i] + bck[i])/t[i] + bck[i]/tb[i]);
+    sig += 1./((rate[i] + bck[i])/t[i] + bck[i]/tb[i]);  //DBSF
   };
   
   ave = ave /sig;
